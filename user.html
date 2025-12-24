@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Janaí Music Player</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- CSS: O Estilo Visual --- */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            /* Fundo Gradiente */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        /* Container Principal (O "Celular") */
+        .music-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            /* Efeito meio transparente */
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 380px;
+            /* Tamanho ideal mobile */
+            padding: 30px;
+            position: relative;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Capa do Álbum */
+        .img-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .img-container img {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            /* Redondo como um disco */
+            object-fit: cover;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            animation: rotate 10s linear infinite;
+            animation-play-state: paused;
+            /* Começa pausado */
+        }
+
+        /* Animação de girar */
+        .music-container.play .img-container img {
+            animation-play-state: running;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Informações da Música */
+        .music-info {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .music-info h2 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #2d3436;
+        }
+
+        .music-info h3 {
+            font-size: 16px;
+            color: #636e72;
+            font-weight: 300;
+        }
+
+        /* Barra de Progresso */
+        .progress-container {
+            background: #dfe6e9;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            height: 6px;
+            width: 100%;
+        }
+
+        .progress {
+            background-color: #764ba2;
+            border-radius: 5px;
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .time-box {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #636e72;
+            margin-bottom: 20px;
+        }
+
+        /* Botões de Controle */
+        .navigation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .action-btn {
+            background-color: transparent;
+            border: 0;
+            color: #dfe6e9;
+            font-size: 25px;
+            cursor: pointer;
+            color: #b2bec3;
+            transition: transform 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.9);
+        }
+
+        /* Botão Play Grande */
+        .action-btn-big {
+            color: #764ba2;
+            font-size: 45px;
+            background: #fff;
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+        }
+
+        .action-btn:focus {
+            outline: 0;
+        }
+
+        /* Playlist Abaixo */
+        .playlist {
+            list-style-type: none;
+            max-height: 150px;
+            overflow-y: auto;
+            /* Rolagem se tiver muitas músicas */
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .playlist li {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .playlist li:hover {
+            background-color: #f1f2f6;
+        }
+
+        .playlist li.active-song {
+            background-color: #e3f2fd;
+            color: #764ba2;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="music-container" id="music-container">
+        <div class="music-info">
+            <h2 id="title">Nome da Música</h2>
+            <h3 id="artist">Artista</h3>
+        </div>
+
+        <div class="img-container">
+            <img src="https://via.placeholder.com/200" alt="Capa do Álbum" id="cover">
+        </div>
+
+        <div class="progress-container" id="progress-container">
+            <div class="progress" id="progress"></div>
+        </div>
+
+        <div class="time-box">
+            <span id="currTime">0:00</span>
+            <span id="durTime">0:00</span>
+        </div>
+
+        <audio id="audio"></audio>
+
+        <div class="navigation">
+            <button id="prev" class="action-btn">
+                <i class="fas fa-backward"></i>
+            </button>
+            <button id="play" class="action-btn action-btn-big">
+                <i class="fas fa-play"></i>
+            </button>
+            <button id="next" class="action-btn">
+                <i class="fas fa-forward"></i>
+            </button>
+        </div>
+
+        <ul class="playlist" id="playlist-el">
+        </ul>
+    </div>
+
+    <script>
+        const musicContainer = document.getElementById('music-container');
+        const playBtn = document.getElementById('play');
+        const prevBtn = document.getElementById('prev');
+        const nextBtn = document.getElementById('next');
+        const audio = document.getElementById('audio');
+        const progress = document.getElementById('progress');
+        const progressContainer = document.getElementById('progress-container');
+        const title = document.getElementById('title');
+        const artist = document.getElementById('artist');
+        const cover = document.getElementById('cover');
+        const currTime = document.querySelector('#currTime');
+        const durTime = document.querySelector('#durTime');
+        const playlistEl = document.getElementById('playlist-el');
+
+        // --- CONFIGURAÇÃO DO CLOUDINARY ---
+        const cloudName = "dnmopjy8l"; // Veja no Dashboard do Cloudinary
+        const tagName = "musicas_janai";         // A tag que você criou
+
+        let songs = [];
+        let songIndex = 0;
+
+        // Função que busca a lista automática
+        async function fetchMusicList() {
+            // URL mágica do Cloudinary que lista os arquivos
+            const url = `https://res.cloudinary.com/${cloudName}/video/list/${tagName}.json`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                // Transforma os dados do Cloudinary no formato do nosso player
+                songs = data.resources.map(file => {
+                    return {
+                        title: file.public_id.split('/').pop(), // Pega o nome do arquivo sem a pasta
+                        artist: "Desconhecido", // O Cloudinary não guarda artista separado nativamente
+                        // Monta o link do áudio
+                        audio: `https://res.cloudinary.com/${cloudName}/video/upload/v${file.version}/${file.public_id}.${file.format}`,
+                        // Capa padrão (ou podemos tentar achar uma capa com mesmo nome depois)
+                        cover: "https://placehold.co/200x200/764ba2/ffffff?text=Music"
+                    };
+                });
+
+                // Inicia o player com a primeira música achada
+                if (songs.length > 0) {
+                    loadSong(songs[0]);
+                    renderPlaylist();
+                } else {
+                    alert("Nenhuma música encontrada com essa Tag!");
+                }
+
+            } catch (error) {
+                console.error("Erro ao buscar músicas:", error);
+                title.innerText = "Erro ao carregar lista";
+            }
+        }
+
+        // Chama a função ao abrir a página
+        fetchMusicList();
+
+        // --- O RESTO DO CÓDIGO CONTINUA IGUAL ---
+
+        function loadSong(song) {
+            title.innerText = song.title;
+            artist.innerText = song.artist;
+            audio.src = song.audio;
+            cover.src = song.cover;
+            updatePlaylistActive();
+        }
+
+        function playSong() {
+            musicContainer.classList.add('play');
+            playBtn.querySelector('i').classList.remove('fa-play');
+            playBtn.querySelector('i').classList.add('fa-pause');
+            audio.play();
+        }
+
+        function pauseSong() {
+            musicContainer.classList.remove('play');
+            playBtn.querySelector('i').classList.add('fa-play');
+            playBtn.querySelector('i').classList.remove('fa-pause');
+            audio.pause();
+        }
+
+        function prevSong() {
+            songIndex--;
+            if (songIndex < 0) {
+                songIndex = songs.length - 1;
+            }
+            loadSong(songs[songIndex]);
+            playSong();
+        }
+
+        function nextSong() {
+            songIndex++;
+            if (songIndex > songs.length - 1) {
+                songIndex = 0;
+            }
+            loadSong(songs[songIndex]);
+            playSong();
+        }
+
+        function updateProgress(e) {
+            const { duration, currentTime } = e.srcElement;
+            const progressPercent = (currentTime / duration) * 100;
+            progress.style.width = `${progressPercent}%`;
+
+            if (duration) {
+                let min = Math.floor(currentTime / 60);
+                let sec = Math.floor(currentTime % 60);
+                if (sec < 10) sec = `0${sec}`;
+                currTime.innerText = `${min}:${sec}`;
+
+                let minDur = Math.floor(duration / 60);
+                let secDur = Math.floor(duration % 60);
+                if (secDur < 10) secDur = `0${secDur}`;
+                durTime.innerText = `${minDur}:${secDur}`;
+            }
+        }
+
+        function setProgress(e) {
+            const width = this.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audio.duration;
+            audio.currentTime = (clickX / width) * duration;
+        }
+
+        function renderPlaylist() {
+            playlistEl.innerHTML = "";
+            songs.forEach((song, index) => {
+                const li = document.createElement('li');
+                // Limita o nome se for muito grande
+                const displayName = song.title.length > 25 ? song.title.substring(0, 25) + '...' : song.title;
+                li.innerHTML = `<span>${displayName}</span> <span style="font-size:12px">${song.artist}</span>`;
+                li.addEventListener('click', () => {
+                    songIndex = index;
+                    loadSong(songs[songIndex]);
+                    playSong();
+                });
+                playlistEl.appendChild(li);
+            });
+            updatePlaylistActive();
+        }
+
+        function updatePlaylistActive() {
+            const items = playlistEl.querySelectorAll('li');
+            items.forEach((item, index) => {
+                if (index === songIndex) {
+                    item.classList.add('active-song');
+                } else {
+                    item.classList.remove('active-song');
+                }
+            });
+        }
+
+        playBtn.addEventListener('click', () => {
+            const isPlaying = musicContainer.classList.contains('play');
+            if (isPlaying) {
+                pauseSong();
+            } else {
+                playSong();
+            }
+        });
+
+        prevBtn.addEventListener('click', prevSong);
+        nextBtn.addEventListener('click', nextSong);
+        audio.addEventListener('timeupdate', updateProgress);
+        progressContainer.addEventListener('click', setProgress);
+        audio.addEventListener('ended', nextSong);
+
+    </script>
+</body>
+
+</html>
