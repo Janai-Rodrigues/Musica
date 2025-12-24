@@ -2,6 +2,7 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open('echoo-store').then((cache) => cache.addAll([
       './index.html',
+      './favicon.ico',
     ]))
   );
 });
