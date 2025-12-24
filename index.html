@@ -288,6 +288,8 @@
             align-items: center;
             flex: 1;
             overflow: hidden;
+            /* Margem a direita para o texto não colar nos botões */
+            margin-right: 15px; 
         }
 
         .mini-cover {
@@ -296,6 +298,7 @@
             border-radius: 6px;
             margin-right: 12px;
             object-fit: cover;
+            flex-shrink: 0; /* Impede a imagem de amassar */
         }
 
         .mini-info h4 {
@@ -315,6 +318,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-shrink: 0; /* Impede os botões de sumirem */
         }
 
         .btn-icon {
@@ -537,14 +541,23 @@
             }
 
             .player-bar {
-                bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) - 10px);
-                /* Ajuste fino */
+                /* AJUSTE AQUI: Alterado de -10px para +5px para subir o player e não cobrir */
+                bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 5px); 
                 margin-left: 10px;
                 margin-right: 10px;
                 border-radius: 15px;
                 width: calc(100% - 20px);
                 border: none;
                 background-color: rgba(30, 20, 50, 0.95);
+                box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+                
+                /* AJUSTE AQUI: Padding direito aumentado para jogar ícones para a esquerda */
+                padding-right: 25px; 
+            }
+
+            .player-controls-mini {
+                /* AJUSTE AQUI: Gap levemente aumentado e margem para empurrar para esquerda */
+                gap: 20px;
             }
         }
 
