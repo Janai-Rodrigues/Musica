@@ -48,7 +48,7 @@
             overflow: hidden;
         }
 
-        /* --- LAYOUT BÁSICO --- */
+        /* --- LAYOUT --- */
         .main-wrapper {
             display: flex;
             flex: 1;
@@ -191,6 +191,9 @@
         .song-info {
             flex: 1;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .song-title {
@@ -200,11 +203,16 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-bottom: 3px;
         }
 
-        .song-artist {
-            font-size: 13px;
+        /* Ajuste para mostrar Álbum */
+        .song-meta {
+            font-size: 12px;
             color: var(--text-gray);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         /* SEARCH & INPUTS */
@@ -269,7 +277,6 @@
             width: 100%;
             z-index: 1000;
             cursor: pointer;
-            /* Indica que é clicável */
             transition: bottom 0.3s;
         }
 
@@ -307,7 +314,6 @@
             gap: 15px;
         }
 
-        /* Botões Limpos (Sem fundo branco) */
         .btn-icon {
             background: transparent !important;
             border: none;
@@ -338,7 +344,7 @@
             }
         }
 
-        /* --- FULL SCREEN PLAYER (OVERLAY) --- */
+        /* --- FULL SCREEN PLAYER --- */
         .full-player {
             position: fixed;
             top: 0;
@@ -351,7 +357,6 @@
             flex-direction: column;
             padding: 40px 30px;
             transform: translateY(100%);
-            /* Escondido embaixo */
             transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
             overflow-y: auto;
         }
@@ -359,8 +364,6 @@
         .full-player.active {
             transform: translateY(0);
         }
-
-        /* Mostra */
 
         .fp-header {
             display: flex;
@@ -498,7 +501,6 @@
             color: var(--primary-purple);
         }
 
-        /* RESPONSIVIDADE */
         @media (max-width: 768px) {
             .sidebar {
                 display: none;
@@ -513,7 +515,6 @@
             }
         }
 
-        /* Toast Notification */
         .toast {
             position: fixed;
             top: 20px;
@@ -572,7 +573,10 @@
                     <i class="fas fa-search" style="color:var(--text-gray)"></i>
                     <input type="text" class="search-input" id="search-input" placeholder="O que você quer ouvir?">
                 </div>
-                <div class="song-list" id="search-results"></div>
+                <div class="song-list" id="search-results">
+                    <p style="text-align:center; color:#555; font-size:14px; margin-top:20px;">Digite algo para
+                        buscar...</p>
+                </div>
             </div>
 
             <div id="view-library" class="view-section">
@@ -699,16 +703,12 @@
         const cloudName = "dnmopjy8l";
         const tagName = "musicas_janai";
 
-        // Estado
         let songs = [];
         let songIndex = 0;
         let likedSongs = new Set();
         let isPlaying = false;
 
-        // Elementos DOM
         const audio = document.getElementById('audio');
-
-        // --- FUNÇÕES DE INTERFACE ---
 
         window.toggleFullScreen = (show) => {
             const el = document.getElementById('full-player');
@@ -727,15 +727,12 @@
             if (view === 'library') renderLibrary();
         }
 
-        // --- LÓGICA DE DADOS ---
         async function loadUserData() {
             try {
-                // Carregar Likes
                 const likesSnapshot = await getDocs(collection(db, "favoritos"));
                 likedSongs.clear();
                 likesSnapshot.forEach((doc) => likedSongs.add(doc.data().songId));
 
-                // Carregar Perfil
                 const settingsSnapshot = await getDocs(collection(db, "settings"));
                 settingsSnapshot.forEach((doc) => {
                     if (doc.id === "profile") {
@@ -764,6 +761,8 @@
                     }
                     return {
                         title: title, artist: artist,
+                        // ALBUM: Mockado pois a API simples não traz álbum
+                        album: "Single",
                         originalName: f.public_id,
                         safeId: f.public_id.replace(/[^a-zA-Z0-9]/g, '_'),
                         audio: `https://res.cloudinary.com/${cloudName}/video/upload/v${f.version}/${f.public_id}.${f.format}`,
@@ -774,7 +773,24 @@
             } catch (e) { console.log(e); }
         }
 
-        // --- RENDERIZAÇÃO ---
+        // --- FUNÇÃO DE CRIAR LINHA (COM ALBUM) ---
+        function createSongRowHTML(s, i) {
+            const isLiked = likedSongs.has(s.originalName);
+            // Formato: Titulo (linha 1), Artista • Album (linha 2)
+            return `
+                <div class="song-row ${i === songIndex ? 'active' : ''}" onclick="playSelected(${i})">
+                    <img src="${s.cover}" class="song-img">
+                    <div class="song-info">
+                        <div class="song-title">${s.title}</div>
+                        <div class="song-meta">${s.artist} • ${s.album}</div>
+                    </div>
+                    <button class="btn-icon" style="font-size:16px; color:${isLiked ? '#9d4edd' : '#666'}" onclick="event.stopPropagation(); toggleLikeSpecific(${i})">
+                         <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+                    </button>
+                </div>
+            `;
+        }
+
         function renderHome() {
             const el = document.getElementById('home-list');
             el.innerHTML = "";
@@ -783,19 +799,33 @@
             document.getElementById('greeting-text').innerText = g;
 
             songs.forEach((s, i) => {
-                const isLiked = likedSongs.has(s.originalName);
-                el.innerHTML += `
-                    <div class="song-row ${i === songIndex ? 'active' : ''}" onclick="playSelected(${i})">
-                        <img src="${s.cover}" class="song-img">
-                        <div class="song-info">
-                            <div class="song-title">${s.title}</div>
-                            <div class="song-artist">${s.artist}</div>
-                        </div>
-                        <i class="${isLiked ? 'fas' : 'far'} fa-heart" style="color:${isLiked ? '#9d4edd' : '#666'}"></i>
-                    </div>
-                `;
+                el.innerHTML += createSongRowHTML(s, i);
             });
         }
+
+        // --- BUSCA CORRIGIDA ---
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const el = document.getElementById('search-results');
+            el.innerHTML = "";
+
+            if (term.length < 1) {
+                el.innerHTML = '<p style="text-align:center; color:#555; font-size:14px; margin-top:20px;">Digite algo para buscar...</p>';
+                return;
+            }
+
+            const filtered = songs.filter(s => s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term));
+
+            if (filtered.length === 0) {
+                el.innerHTML = '<p style="text-align:center; color:#555; font-size:14px; margin-top:20px;">Nenhum resultado.</p>';
+            } else {
+                filtered.forEach(s => {
+                    // Precisamos achar o indice original pra tocar a música certa
+                    const originalIdx = songs.findIndex(orig => orig.originalName === s.originalName);
+                    el.innerHTML += createSongRowHTML(s, originalIdx);
+                });
+            }
+        });
 
         function renderLibrary() {
             const el = document.getElementById('library-likes');
@@ -805,12 +835,7 @@
                 el.innerHTML = "";
                 likedList.forEach(s => {
                     const originalIdx = songs.findIndex(x => x.originalName === s.originalName);
-                    el.innerHTML += `
-                        <div class="song-row" onclick="playSelected(${originalIdx})">
-                            <img src="${s.cover}" class="song-img">
-                            <div class="song-info"><div class="song-title">${s.title}</div><div class="song-artist">${s.artist}</div></div>
-                            <i class="fas fa-heart" style="color:#9d4edd"></i>
-                        </div>`;
+                    el.innerHTML += createSongRowHTML(s, originalIdx);
                 });
             }
         }
@@ -824,7 +849,6 @@
             });
         }
 
-        // --- PLAYER LOGIC ---
         window.playSelected = (idx) => {
             songIndex = idx;
             loadSong(songs[songIndex]);
@@ -834,19 +858,16 @@
         }
 
         async function loadSong(song) {
-            // Atualiza Mini Player
             document.getElementById('mini-title').innerText = song.title;
-            document.getElementById('mini-artist').innerText = song.artist;
+            document.getElementById('mini-artist').innerText = song.artist; // Mini player só artista (espaço)
             document.getElementById('mini-cover').src = song.cover;
 
-            // Atualiza Full Player
             document.getElementById('fp-title').innerText = song.title;
-            document.getElementById('fp-artist').innerText = song.artist;
+            document.getElementById('fp-artist').innerText = `${song.artist} • ${song.album}`; // Full player mostra album
             document.getElementById('fp-cover').src = song.cover;
 
             audio.src = song.audio;
 
-            // Busca Capa Real (iTunes API)
             if (song.artist !== "Echoo Artist") {
                 fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(song.artist + " " + song.title)}&media=music&limit=1`)
                     .then(r => r.json()).then(d => {
@@ -857,9 +878,13 @@
                         }
                     }).catch(() => { });
             }
-
             updateLikeUI();
-            renderHome(); // Para mudar o highlight da lista
+            renderHome();
+            if (document.getElementById('view-search').classList.contains('active')) {
+                // Força atualização visual na busca se estiver lá
+                const event = new Event('input');
+                document.getElementById('search-input').dispatchEvent(event);
+            }
         }
 
         function updatePlayBtnUI() {
@@ -868,34 +893,42 @@
             document.getElementById('fp-play').innerHTML = icon;
         }
 
-        // --- LÓGICA DE LIKE (CORRIGIDA) ---
-        async function toggleLike() {
-            if (!songs[songIndex]) return;
-            const song = songs[songIndex];
+        // Like genérico (do player)
+        window.toggleLike = async () => {
+            toggleLikeSpecific(songIndex);
+        }
+
+        // Like específico (clique na lista)
+        window.toggleLikeSpecific = async (idx) => {
+            if (!songs[idx]) return;
+            const song = songs[idx];
             const sid = song.originalName;
 
             if (likedSongs.has(sid)) {
-                // Remover
-                likedSongs.delete(sid); // Atualiza localmente rápido
+                likedSongs.delete(sid);
                 updateLikeUI();
                 showToast("Removido dos favoritos");
-
-                // Remover do Firebase
                 const q = query(collection(db, "favoritos"), where("songId", "==", sid));
                 const snap = await getDocs(q);
                 snap.forEach(d => deleteDoc(d.ref));
             } else {
-                // Adicionar
                 likedSongs.add(sid);
                 updateLikeUI();
                 showToast("Adicionado aos favoritos 💜");
-
                 await addDoc(collection(db, "favoritos"), {
                     songId: sid, title: song.title, artist: song.artist, addedAt: new Date()
                 });
             }
-            renderHome(); // Atualiza icones na lista
+
+            // Atualiza as listas
+            renderHome();
             if (document.getElementById('view-library').classList.contains('active')) renderLibrary();
+
+            // Se estiver na busca, re-renderiza para atualizar coração
+            if (document.getElementById('view-search').classList.contains('active')) {
+                const ev = new Event('input');
+                document.getElementById('search-input').dispatchEvent(ev);
+            }
         }
 
         function updateLikeUI() {
@@ -904,21 +937,16 @@
             const iconClass = isLiked ? "fas fa-heart" : "far fa-heart";
             const color = isLiked ? "#9d4edd" : "#ffffff";
 
-            // Mini Player
             const miniBtn = document.getElementById('mini-like-btn');
             miniBtn.innerHTML = `<i class="${iconClass}"></i>`;
             miniBtn.style.color = color;
             if (isLiked) miniBtn.classList.add('liked'); else miniBtn.classList.remove('liked');
 
-            // Full Player
             const fpBtn = document.getElementById('fp-like-btn');
             fpBtn.innerHTML = `<i class="${iconClass}"></i>`;
             fpBtn.style.color = color;
         }
 
-        // --- EVENTOS ---
-
-        // Evitar que clicar nos botões do mini player abra a tela cheia
         document.getElementById('mini-play-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             if (audio.paused) { audio.play(); isPlaying = true; } else { audio.pause(); isPlaying = false; }
@@ -929,7 +957,6 @@
             toggleLike();
         });
 
-        // Controles Full Player
         document.getElementById('fp-play').addEventListener('click', () => {
             if (audio.paused) { audio.play(); isPlaying = true; } else { audio.pause(); isPlaying = false; }
             updatePlayBtnUI();
@@ -944,16 +971,13 @@
         });
         document.getElementById('fp-like-btn').addEventListener('click', toggleLike);
 
-        // Barra de Progresso
         audio.addEventListener('timeupdate', (e) => {
             const { currentTime, duration } = e.srcElement;
             if (duration) {
                 const pct = (currentTime / duration) * 100;
                 document.getElementById('fp-progress-fill').style.width = `${pct}%`;
-
                 let m = Math.floor(currentTime / 60), s = Math.floor(currentTime % 60);
                 document.getElementById('fp-curr-time').innerText = `${m}:${s < 10 ? '0' + s : s}`;
-
                 let dm = Math.floor(duration / 60), ds = Math.floor(duration % 60);
                 document.getElementById('fp-dur-time').innerText = `${dm}:${ds < 10 ? '0' + ds : ds}`;
             }
@@ -967,7 +991,6 @@
             playSelected(songIndex);
         });
 
-        // Outros
         document.getElementById('btn-create-playlist-mob').addEventListener('click', async () => {
             const n = prompt("Nome da Playlist:");
             if (n) { await addDoc(collection(db, "playlists"), { name: n }); renderPlaylists(); }
@@ -988,9 +1011,7 @@
             setTimeout(() => t.style.opacity = '0', 2000);
         }
 
-        // Iniciar
         fetchMusic();
-
     </script>
 </body>
 
