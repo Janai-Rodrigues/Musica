@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Janaí Music Player</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 
     <style>
         /* --- CSS: O Estilo Visual --- */
@@ -251,61 +252,105 @@
         const durTime = document.querySelector('#durTime');
         const playlistEl = document.getElementById('playlist-el');
 
-        // --- CONFIGURAÇÃO DO CLOUDINARY ---
-        const cloudName = "dnmopjy8l"; // Veja no Dashboard do Cloudinary
-        const tagName = "musicas_janai";         // A tag que você criou
+        // --- SEUS DADOS ---
+        const cloudName = "dnmopjy8l";
+        const tagName = "musicas_janai";
 
         let songs = [];
         let songIndex = 0;
 
-        // Função que busca a lista automática
+        // 1. Busca a lista de músicas no Cloudinary
         async function fetchMusicList() {
-            // URL mágica do Cloudinary que lista os arquivos
+            // Nota: Se seus arquivos forem MP3, use 'video'. Se a lista não carregar, tente 'raw'.
+            // Pelo seu último teste, a lista funcionou com 'video'.
             const url = `https://res.cloudinary.com/${cloudName}/video/list/${tagName}.json`;
 
             try {
                 const response = await fetch(url);
                 const data = await response.json();
 
-                // Transforma os dados do Cloudinary no formato do nosso player
                 songs = data.resources.map(file => {
+                    // TRUQUE: Tenta separar "Artista - Musica" pelo nome do arquivo
+                    let cleanName = file.public_id;
+                    let cleanArtist = "Desconhecido";
+
+                    // Se o arquivo tiver um traço " - " (ex: Ariana Grande - Breathin)
+                    if (file.public_id.includes(' - ')) {
+                        const parts = file.public_id.split(' - ');
+                        cleanArtist = parts[0]; // Pega a parte antes do traço
+                        cleanName = parts[1];   // Pega a parte depois do traço
+                    }
+
                     return {
-                        title: file.public_id.split('/').pop(), // Pega o nome do arquivo sem a pasta
-                        artist: "Desconhecido", // O Cloudinary não guarda artista separado nativamente
+                        title: cleanName,
+                        artist: cleanArtist,
+                        originalName: file.public_id, // Guarda o nome original para busca
                         // Monta o link do áudio
                         audio: `https://res.cloudinary.com/${cloudName}/video/upload/v${file.version}/${file.public_id}.${file.format}`,
-                        // Capa padrão (ou podemos tentar achar uma capa com mesmo nome depois)
+                        // Capa padrão inicial (enquanto não acha a oficial)
                         cover: "https://placehold.co/200x200/764ba2/ffffff?text=Music"
                     };
                 });
 
-                // Inicia o player com a primeira música achada
                 if (songs.length > 0) {
                     loadSong(songs[0]);
                     renderPlaylist();
-                } else {
-                    alert("Nenhuma música encontrada com essa Tag!");
                 }
 
             } catch (error) {
-                console.error("Erro ao buscar músicas:", error);
-                title.innerText = "Erro ao carregar lista";
+                console.error("Erro:", error);
+                title.innerText = "Erro ao carregar";
             }
         }
 
-        // Chama a função ao abrir a página
-        fetchMusicList();
+        // 2. Função nova: Busca a capa no iTunes
+        async function fetchAlbumCover(query) {
+            // Limpa sujeiras do nome para buscar melhor
+            const searchTerm = query.replace(/_/g, ' ');
 
-        // --- O RESTO DO CÓDIGO CONTINUA IGUAL ---
+            try {
+                // Chama a API da Apple
+                const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&media=music&limit=1`);
+                const data = await res.json();
 
-        function loadSong(song) {
+                if (data.results.length > 0) {
+                    // A Apple manda uma imagem pequena (100x100), aqui eu troco para pegar a (600x600)
+                    return data.results[0].artworkUrl100.replace('100x100', '600x600');
+                }
+            } catch (err) {
+                console.log("Capa não encontrada na Apple Music");
+            }
+            return null; // Retorna nulo se não achar
+        }
+
+        // 3. Carregar música e chamar a busca da capa
+        async function loadSong(song) {
             title.innerText = song.title;
             artist.innerText = song.artist;
             audio.src = song.audio;
-            cover.src = song.cover;
-            updatePlaylistActive();
+
+            // Coloca a capa padrão primeiro (para não ficar vazio)
+            cover.src = "https://placehold.co/200x200/764ba2/ffffff?text=Music";
+
+            // Tenta buscar a capa oficial em segundo plano
+            updatePlaylistActive(); // Atualiza a lista visualmente
+
+            // Faz a busca usando "Artista Nome da Musica" ou só o nome do arquivo
+            const searchTerm = song.artist !== "Desconhecido"
+                ? `${song.artist} ${song.title}`
+                : song.originalName;
+
+            const officialCover = await fetchAlbumCover(searchTerm);
+
+            // Se achou, troca a imagem!
+            if (officialCover) {
+                cover.src = officialCover;
+                // Opcional: Salva no objeto para não buscar de novo se você voltar a musica
+                song.cover = officialCover;
+            }
         }
 
+        // --- CONTROLES (IGUAIS AO ANTERIOR) ---
         function playSong() {
             musicContainer.classList.add('play');
             playBtn.querySelector('i').classList.remove('fa-play');
@@ -322,18 +367,14 @@
 
         function prevSong() {
             songIndex--;
-            if (songIndex < 0) {
-                songIndex = songs.length - 1;
-            }
+            if (songIndex < 0) songIndex = songs.length - 1;
             loadSong(songs[songIndex]);
             playSong();
         }
 
         function nextSong() {
             songIndex++;
-            if (songIndex > songs.length - 1) {
-                songIndex = 0;
-            }
+            if (songIndex > songs.length - 1) songIndex = 0;
             loadSong(songs[songIndex]);
             playSong();
         }
@@ -367,7 +408,6 @@
             playlistEl.innerHTML = "";
             songs.forEach((song, index) => {
                 const li = document.createElement('li');
-                // Limita o nome se for muito grande
                 const displayName = song.title.length > 25 ? song.title.substring(0, 25) + '...' : song.title;
                 li.innerHTML = `<span>${displayName}</span> <span style="font-size:12px">${song.artist}</span>`;
                 li.addEventListener('click', () => {
@@ -393,11 +433,8 @@
 
         playBtn.addEventListener('click', () => {
             const isPlaying = musicContainer.classList.contains('play');
-            if (isPlaying) {
-                pauseSong();
-            } else {
-                playSong();
-            }
+            if (isPlaying) pauseSong();
+            else playSong();
         });
 
         prevBtn.addEventListener('click', prevSong);
@@ -406,6 +443,8 @@
         progressContainer.addEventListener('click', setProgress);
         audio.addEventListener('ended', nextSong);
 
+        // Inicia
+        fetchMusicList();
     </script>
 </body>
 
