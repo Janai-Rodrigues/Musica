@@ -27,7 +27,7 @@
             --secondary-purple: #7b2cbf;
             --text-white: #ffffff;
             --text-gray: #c4b5fd;
-            --nav-height: 65px;
+            --nav-height: 85px; /* Altura aumentada para mobile */
             --player-height: 80px;
         }
 
@@ -103,7 +103,7 @@
         .main-content {
             flex: 1;
             background: radial-gradient(circle at top left, #240046, var(--bg-black));
-            padding: 20px 20px 160px 20px;
+            padding: 20px 20px 180px 20px; /* Padding extra embaixo */
             overflow-y: auto;
             position: relative;
         }
@@ -119,15 +119,8 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .header-top {
@@ -186,6 +179,7 @@
             border-radius: 8px;
             margin-right: 15px;
             object-fit: cover;
+            background-color: #2a1b3d;
         }
 
         .song-info {
@@ -206,7 +200,6 @@
             margin-bottom: 3px;
         }
 
-        /* Ajuste para mostrar Álbum */
         .song-meta {
             font-size: 12px;
             color: var(--text-gray);
@@ -263,7 +256,7 @@
             cursor: pointer;
         }
 
-        /* --- MINI PLAYER (BARRA INFERIOR) --- */
+        /* --- MINI PLAYER --- */
         .player-bar {
             height: var(--player-height);
             background-color: rgba(18, 10, 31, 0.98);
@@ -331,17 +324,9 @@
         }
 
         @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.3);
-            }
-
-            100% {
-                transform: scale(1);
-            }
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
         }
 
         /* --- FULL SCREEN PLAYER --- */
@@ -470,35 +455,58 @@
             border: none;
         }
 
-        /* --- MOBILE NAV --- */
+        /* --- MOBILE NAV (NOVO DESIGN GORDINHO) --- */
         .mobile-nav {
             display: none;
             position: fixed;
             bottom: 0;
             width: 100%;
             height: var(--nav-height);
-            background-color: var(--bg-black);
-            border-top: 1px solid #2a1b3d;
-            justify-content: space-around;
+            background-color: rgba(18, 10, 31, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(157, 78, 221, 0.3);
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            justify-content: space-evenly;
             align-items: center;
             z-index: 1001;
             padding-bottom: env(safe-area-inset-bottom);
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
         }
 
         .mob-link {
-            flex: 1;
+            flex: none;
+            width: 70px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
+            justify-content: center;
+            gap: 6px;
             color: var(--text-gray);
-            font-size: 10px;
+            font-size: 11px;
+            font-weight: 500;
             background: none;
             border: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .mob-link i {
+            font-size: 20px;
+            padding: 10px;
+            border-radius: 50%;
+            transition: all 0.3s;
+            background: transparent;
         }
 
         .mob-link.active {
-            color: var(--primary-purple);
+            color: var(--text-white);
+            transform: translateY(-5px);
+        }
+
+        .mob-link.active i {
+            background-color: var(--primary-purple);
+            color: white;
+            box-shadow: 0 5px 15px rgba(157, 78, 221, 0.5);
         }
 
         @media (max-width: 768px) {
@@ -511,7 +519,13 @@
             }
 
             .player-bar {
-                bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+                bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) - 10px); /* Ajuste fino */
+                margin-left: 10px;
+                margin-right: 10px;
+                border-radius: 15px;
+                width: calc(100% - 20px);
+                border: none;
+                background-color: rgba(30, 20, 50, 0.95);
             }
         }
 
@@ -673,12 +687,15 @@
     </div>
 
     <div class="mobile-nav">
-        <button class="mob-link active" onclick="navigateTo('home')" id="mob-home"><i
-                class="fas fa-home"></i>Início</button>
-        <button class="mob-link" onclick="navigateTo('search')" id="mob-search"><i
-                class="fas fa-search"></i>Buscar</button>
-        <button class="mob-link" onclick="navigateTo('library')" id="mob-library"><i
-                class="fas fa-book"></i>Biblioteca</button>
+        <button class="mob-link active" onclick="navigateTo('home')" id="mob-home">
+            <i class="fas fa-home"></i>Início
+        </button>
+        <button class="mob-link" onclick="navigateTo('search')" id="mob-search">
+            <i class="fas fa-search"></i>Buscar
+        </button>
+        <button class="mob-link" onclick="navigateTo('library')" id="mob-library">
+            <i class="fas fa-book"></i>Biblio
+        </button>
     </div>
 
     <audio id="audio"></audio>
@@ -761,28 +778,63 @@
                     }
                     return {
                         title: title, artist: artist,
-                        // ALBUM: Mockado pois a API simples não traz álbum
+                        // Album começa genérico, depois atualiza
                         album: "Single",
                         originalName: f.public_id,
                         safeId: f.public_id.replace(/[^a-zA-Z0-9]/g, '_'),
                         audio: `https://res.cloudinary.com/${cloudName}/video/upload/v${f.version}/${f.public_id}.${f.format}`,
-                        cover: `https://ui-avatars.com/api/?name=${encodeURIComponent(artist)}&background=7b2cbf&color=fff&size=500&bold=true`
+                        // Imagem placeholder para carregar rápido
+                        cover: `https://ui-avatars.com/api/?name=${encodeURIComponent(artist)}&background=7b2cbf&color=fff&size=200&bold=true`,
+                        hasRealCover: false
                     };
                 });
+                
                 renderHome();
+                
+                // INICIA A BUSCA DE CAPAS EM SEGUNDO PLANO
+                updateAllCovers();
+
             } catch (e) { console.log(e); }
         }
 
-        // --- FUNÇÃO DE CRIAR LINHA (COM ALBUM) ---
+        // --- FUNÇÃO PARA BUSCAR AS CAPAS REAIS NO ITUNES ---
+        async function updateAllCovers() {
+            for (let i = 0; i < songs.length; i++) {
+                const song = songs[i];
+                if (song.artist === "Echoo Artist" || song.hasRealCover) continue;
+
+                try {
+                    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(song.artist + " " + song.title)}&media=music&limit=1`);
+                    const data = await res.json();
+                    if (data.results && data.results[0]) {
+                        const art = data.results[0].artworkUrl100.replace('100x100', '300x300');
+                        songs[i].cover = art;
+                        songs[i].hasRealCover = true;
+                        songs[i].album = data.results[0].collectionName || "Single";
+
+                        // Atualiza visualmente na lista se existir
+                        const imgEl = document.getElementById(`img-row-${i}`);
+                        if(imgEl) imgEl.src = art;
+                        
+                        // Opcional: Atualizar texto do álbum também se quiser
+                        // const metaEl = document.getElementById(`meta-row-${i}`);
+                        // if(metaEl) metaEl.innerText = `${song.artist} • ${song.album}`;
+                    }
+                } catch (err) { }
+                // Delay pequeno pra não travar
+                await new Promise(r => setTimeout(r, 50));
+            }
+        }
+
+        // --- FUNÇÃO DE CRIAR LINHA (Com ID na imagem) ---
         function createSongRowHTML(s, i) {
             const isLiked = likedSongs.has(s.originalName);
-            // Formato: Titulo (linha 1), Artista • Album (linha 2)
             return `
                 <div class="song-row ${i === songIndex ? 'active' : ''}" onclick="playSelected(${i})">
-                    <img src="${s.cover}" class="song-img">
+                    <img src="${s.cover}" class="song-img" id="img-row-${i}" loading="lazy">
                     <div class="song-info">
                         <div class="song-title">${s.title}</div>
-                        <div class="song-meta">${s.artist} • ${s.album}</div>
+                        <div class="song-meta" id="meta-row-${i}">${s.artist} • ${s.album}</div>
                     </div>
                     <button class="btn-icon" style="font-size:16px; color:${isLiked ? '#9d4edd' : '#666'}" onclick="event.stopPropagation(); toggleLikeSpecific(${i})">
                          <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
@@ -820,7 +872,6 @@
                 el.innerHTML = '<p style="text-align:center; color:#555; font-size:14px; margin-top:20px;">Nenhum resultado.</p>';
             } else {
                 filtered.forEach(s => {
-                    // Precisamos achar o indice original pra tocar a música certa
                     const originalIdx = songs.findIndex(orig => orig.originalName === s.originalName);
                     el.innerHTML += createSongRowHTML(s, originalIdx);
                 });
@@ -859,32 +910,18 @@
 
         async function loadSong(song) {
             document.getElementById('mini-title').innerText = song.title;
-            document.getElementById('mini-artist').innerText = song.artist; // Mini player só artista (espaço)
+            document.getElementById('mini-artist').innerText = song.artist;
             document.getElementById('mini-cover').src = song.cover;
 
             document.getElementById('fp-title').innerText = song.title;
-            document.getElementById('fp-artist').innerText = `${song.artist} • ${song.album}`; // Full player mostra album
+            document.getElementById('fp-artist').innerText = `${song.artist} • ${song.album}`;
             document.getElementById('fp-cover').src = song.cover;
 
             audio.src = song.audio;
 
-            if (song.artist !== "Echoo Artist") {
-                fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(song.artist + " " + song.title)}&media=music&limit=1`)
-                    .then(r => r.json()).then(d => {
-                        if (d.results[0]) {
-                            const art = d.results[0].artworkUrl100.replace('100x100', '600x600');
-                            document.getElementById('mini-cover').src = art;
-                            document.getElementById('fp-cover').src = art;
-                        }
-                    }).catch(() => { });
-            }
-            updateLikeUI();
+            // Renderiza Home para atualizar qual está ativa (borda roxa)
             renderHome();
-            if (document.getElementById('view-search').classList.contains('active')) {
-                // Força atualização visual na busca se estiver lá
-                const event = new Event('input');
-                document.getElementById('search-input').dispatchEvent(event);
-            }
+            updateLikeUI();
         }
 
         function updatePlayBtnUI() {
@@ -893,12 +930,10 @@
             document.getElementById('fp-play').innerHTML = icon;
         }
 
-        // Like genérico (do player)
         window.toggleLike = async () => {
             toggleLikeSpecific(songIndex);
         }
 
-        // Like específico (clique na lista)
         window.toggleLikeSpecific = async (idx) => {
             if (!songs[idx]) return;
             const song = songs[idx];
@@ -920,15 +955,9 @@
                 });
             }
 
-            // Atualiza as listas
+            // Atualiza botões da lista sem recarregar tudo
             renderHome();
             if (document.getElementById('view-library').classList.contains('active')) renderLibrary();
-
-            // Se estiver na busca, re-renderiza para atualizar coração
-            if (document.getElementById('view-search').classList.contains('active')) {
-                const ev = new Event('input');
-                document.getElementById('search-input').dispatchEvent(ev);
-            }
         }
 
         function updateLikeUI() {
