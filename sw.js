@@ -1,8 +1,9 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open('echoo-store').then((cache) => cache.addAll([
+    // Dica: Mudei o nome do cache para 'echoo-store-v2' para forçar uma atualização
+    caches.open('echoo-store-v2').then((cache) => cache.addAll([
       './index.html',
-      './favicon.ico',
+      './img/favicon.ico', // <--- CAMINHO ATUALIZADO AQUI
     ]))
   );
 });
