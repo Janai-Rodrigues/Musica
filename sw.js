@@ -1,16 +1,11 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    // Dica: Mudei o nome do cache para 'echoo-store-v2' para forçar uma atualização
-    caches.open('echoo-store-v2').then((cache) => cache.addAll([
+    // Mudei a versão para v3 para forçar atualização
+    caches.open('echoo-store-v3').then((cache) => cache.addAll([
       './index.html',
-      './img/favicon.ico', // <--- CAMINHO ATUALIZADO AQUI
+      './img/favicon.ico',
+      './img/icon-192.png', // Adicionado
+      './img/icon-512.png'  // Adicionado
     ]))
-  );
-});
-
-self.addEventListener('fetch', (e) => {
-  console.log(e.request.url);
-  e.respondWith(
-    caches.match(e.request).then((response) => response || fetch(e.request))
   );
 });
