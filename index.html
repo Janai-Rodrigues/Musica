@@ -17,7 +17,8 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="./favicon.ico?v=2" type="image/x-icon">
+    <link rel="shortcut icon" href="./favicon.ico?v=2" type="image/x-icon">
 
     <style>
         :root {
@@ -27,7 +28,8 @@
             --secondary-purple: #7b2cbf;
             --text-white: #ffffff;
             --text-gray: #c4b5fd;
-            --nav-height: 85px; /* Altura aumentada para mobile */
+            --nav-height: 85px;
+            /* Altura aumentada para mobile */
             --player-height: 80px;
         }
 
@@ -103,7 +105,8 @@
         .main-content {
             flex: 1;
             background: radial-gradient(circle at top left, #240046, var(--bg-black));
-            padding: 20px 20px 180px 20px; /* Padding extra embaixo */
+            padding: 20px 20px 180px 20px;
+            /* Padding extra embaixo */
             overflow-y: auto;
             position: relative;
         }
@@ -119,8 +122,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .header-top {
@@ -324,9 +334,17 @@
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.3);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         /* --- FULL SCREEN PLAYER --- */
@@ -471,7 +489,7 @@
             align-items: center;
             z-index: 1001;
             padding-bottom: env(safe-area-inset-bottom);
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
         }
 
         .mob-link {
@@ -519,7 +537,8 @@
             }
 
             .player-bar {
-                bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) - 10px); /* Ajuste fino */
+                bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) - 10px);
+                /* Ajuste fino */
                 margin-left: 10px;
                 margin-right: 10px;
                 border-radius: 15px;
@@ -788,9 +807,9 @@
                         hasRealCover: false
                     };
                 });
-                
+
                 renderHome();
-                
+
                 // INICIA A BUSCA DE CAPAS EM SEGUNDO PLANO
                 updateAllCovers();
 
@@ -814,8 +833,8 @@
 
                         // Atualiza visualmente na lista se existir
                         const imgEl = document.getElementById(`img-row-${i}`);
-                        if(imgEl) imgEl.src = art;
-                        
+                        if (imgEl) imgEl.src = art;
+
                         // Opcional: Atualizar texto do álbum também se quiser
                         // const metaEl = document.getElementById(`meta-row-${i}`);
                         // if(metaEl) metaEl.innerText = `${song.artist} • ${song.album}`;
