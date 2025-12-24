@@ -4,265 +4,603 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Janaí Music Player</title>
+    <title>JanaiFy - Web Player</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* --- CSS: O Estilo Visual --- */
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+        /* --- ESTILO SPOTIFY DARK MODE --- */
+        :root {
+            --bg-black: #121212;
+            --bg-panel: #181818;
+            --primary-green: #1db954;
+            --text-white: #ffffff;
+            --text-gray: #b3b3b3;
+        }
 
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            /* Fundo Gradiente */
-            min-height: 100vh;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #000;
+            color: var(--text-white);
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #333;
+            overflow: hidden;
         }
 
-        /* Container Principal (O "Celular") */
-        .music-container {
-            background-color: rgba(255, 255, 255, 0.9);
-            /* Efeito meio transparente */
-            border-radius: 20px;
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-            width: 90%;
-            max-width: 380px;
-            /* Tamanho ideal mobile */
-            padding: 30px;
-            position: relative;
-            margin: 20px 0;
-            backdrop-filter: blur(10px);
-        }
-
-        /* Capa do Álbum */
-        .img-container {
-            width: 100%;
+        /* Layout Principal */
+        .main-wrapper {
             display: flex;
-            justify-content: center;
-            margin-bottom: 25px;
+            flex: 1;
+            overflow: hidden;
+            /* O Player fica fixo embaixo */
+        }
+
+        /* Sidebar (Barra Lateral) */
+        .sidebar {
+            width: 240px;
+            background-color: #000;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            /* Esconde sidebar no celular por enquanto */
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-white);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo i {
+            color: var(--text-white);
+            font-size: 30px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            padding: 10px 0;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            color: var(--text-white);
+        }
+
+        .playlist-header {
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: var(--text-gray);
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .create-playlist-btn {
+            background-color: var(--text-white);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* Área Principal de Conteúdo */
+        .main-content {
+            flex: 1;
+            background: linear-gradient(180deg, #222 0%, var(--bg-black) 100%);
+            /* Degradê sutil */
+            padding: 20px;
+            overflow-y: auto;
             position: relative;
         }
 
-        .img-container img {
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            /* Redondo como um disco */
-            object-fit: cover;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            animation: rotate 10s linear infinite;
-            animation-play-state: paused;
-            /* Começa pausado */
-        }
-
-        /* Animação de girar */
-        .music-container.play .img-container img {
-            animation-play-state: running;
-        }
-
-        @keyframes rotate {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Informações da Música */
-        .music-info {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .music-info h2 {
-            font-size: 24px;
-            margin-bottom: 5px;
-            color: #2d3436;
-        }
-
-        .music-info h3 {
-            font-size: 16px;
-            color: #636e72;
-            font-weight: 300;
-        }
-
-        /* Barra de Progresso */
-        .progress-container {
-            background: #dfe6e9;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px 0;
-            height: 6px;
-            width: 100%;
-        }
-
-        .progress {
-            background-color: #764ba2;
-            border-radius: 5px;
-            height: 100%;
-            width: 0%;
-            transition: width 0.1s linear;
-        }
-
-        .time-box {
+        .header-top {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
-            color: #636e72;
-            margin-bottom: 20px;
-        }
-
-        /* Botões de Controle */
-        .navigation {
-            display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 30px;
             margin-bottom: 30px;
         }
 
-        .action-btn {
-            background-color: transparent;
-            border: 0;
-            color: #dfe6e9;
-            font-size: 25px;
-            cursor: pointer;
-            color: #b2bec3;
-            transition: transform 0.2s;
-        }
-
-        .action-btn:active {
-            transform: scale(0.9);
-        }
-
-        /* Botão Play Grande */
-        .action-btn-big {
-            color: #764ba2;
-            font-size: 45px;
-            background: #fff;
-            border-radius: 50%;
-            width: 70px;
-            height: 70px;
+        .user-pill {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 15px 5px 5px;
+            border-radius: 20px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
-        }
-
-        .action-btn:focus {
-            outline: 0;
-        }
-
-        /* Playlist Abaixo */
-        .playlist {
-            list-style-type: none;
-            max-height: 150px;
-            overflow-y: auto;
-            /* Rolagem se tiver muitas músicas */
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-
-        .playlist li {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
+            gap: 10px;
+            font-weight: 700;
             font-size: 14px;
         }
 
-        .playlist li:hover {
-            background-color: #f1f2f6;
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary-green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .playlist li.active-song {
-            background-color: #e3f2fd;
-            color: #764ba2;
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        /* Grid de Músicas */
+        .song-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .song-row {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .song-row:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .song-row.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .song-row.active .song-title {
+            color: var(--primary-green);
+        }
+
+        .song-img {
+            width: 40px;
+            height: 40px;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+
+        .song-info {
+            flex: 1;
+        }
+
+        .song-title {
             font-weight: 600;
+            font-size: 16px;
+            color: var(--text-white);
+        }
+
+        .song-artist {
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+
+        .action-area {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .like-btn {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .like-btn.liked {
+            color: var(--primary-green);
+        }
+
+        /* Player Bar (Fixo embaixo) */
+        .player-bar {
+            height: 90px;
+            background-color: var(--bg-panel);
+            border-top: 1px solid #282828;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        /* Esquerda: Info da Música Tocando */
+        .player-left {
+            display: flex;
+            align-items: center;
+            width: 30%;
+        }
+
+        .current-cover {
+            width: 56px;
+            height: 56px;
+            margin-right: 15px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .current-info h4 {
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .current-info p {
+            font-size: 11px;
+            color: var(--text-gray);
+        }
+
+        /* Centro: Controles */
+        .player-center {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .control-btn:hover {
+            color: var(--text-white);
+        }
+
+        .play-pause-btn {
+            width: 35px;
+            height: 35px;
+            background-color: var(--text-white);
+            border-radius: 50%;
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .play-pause-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .progress-area {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--text-gray);
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background-color: #535353;
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--text-white);
+            /* Fica verde ao passar o mouse */
+            width: 0%;
+            border-radius: 2px;
+        }
+
+        .progress-bar:hover .progress-fill {
+            background-color: var(--primary-green);
+        }
+
+        /* Direita: Volume */
+        .player-right {
+            width: 30%;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .volume-slider {
+            width: 100px;
+            margin-left: 10px;
+            accent-color: var(--text-white);
+            /* Cor do slider */
+        }
+
+        /* Notificação */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-green);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="music-container" id="music-container">
-        <div class="music-info">
-            <h2 id="title">Nome da Música</h2>
-            <h3 id="artist">Artista</h3>
+    <div class="main-wrapper">
+        <div class="sidebar">
+            <div class="logo">
+                <i class="fab fa-spotify"></i> JanaiFy
+            </div>
+            <nav>
+                <button class="nav-btn active"><i class="fas fa-home"></i> Início</button>
+                <button class="nav-btn"><i class="fas fa-search"></i> Buscar</button>
+                <button class="nav-btn"><i class="fas fa-book"></i> Biblioteca</button>
+            </nav>
+
+            <div class="playlist-header">Minhas Playlists</div>
+            <button class="create-playlist-btn" id="btn-create-playlist"><i class="fas fa-plus-square"></i> Criar
+                Playlist</button>
+            <div id="user-playlists" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+            </div>
         </div>
 
-        <div class="img-container">
-            <img src="https://via.placeholder.com/200" alt="Capa do Álbum" id="cover">
+        <div class="main-content">
+            <div class="header-top">
+                <div style="display:flex; gap:10px;">
+                    <button
+                        style="background:rgba(0,0,0,0.5); border:none; border-radius:50%; width:30px; height:30px; color:white;"><i
+                            class="fas fa-chevron-left"></i></button>
+                    <button
+                        style="background:rgba(0,0,0,0.5); border:none; border-radius:50%; width:30px; height:30px; color:white;"><i
+                            class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="user-pill">
+                    <div class="user-avatar"><i class="fas fa-user"></i></div>
+                    <span>Janaí</span>
+                </div>
+            </div>
+
+            <h2 id="greeting-text">Bom dia</h2>
+
+            <div class="song-list" id="playlist-el">
+                <p style="color: #b3b3b3;">Carregando sua biblioteca...</p>
+            </div>
         </div>
-
-        <div class="progress-container" id="progress-container">
-            <div class="progress" id="progress"></div>
-        </div>
-
-        <div class="time-box">
-            <span id="currTime">0:00</span>
-            <span id="durTime">0:00</span>
-        </div>
-
-        <audio id="audio"></audio>
-
-        <div class="navigation">
-            <button id="prev" class="action-btn">
-                <i class="fas fa-backward"></i>
-            </button>
-            <button id="play" class="action-btn action-btn-big">
-                <i class="fas fa-play"></i>
-            </button>
-            <button id="next" class="action-btn">
-                <i class="fas fa-forward"></i>
-            </button>
-        </div>
-
-        <ul class="playlist" id="playlist-el">
-        </ul>
     </div>
 
-    <script>
-        const musicContainer = document.getElementById('music-container');
-        const playBtn = document.getElementById('play');
-        const prevBtn = document.getElementById('prev');
-        const nextBtn = document.getElementById('next');
-        const audio = document.getElementById('audio');
-        const progress = document.getElementById('progress');
-        const progressContainer = document.getElementById('progress-container');
-        const title = document.getElementById('title');
-        const artist = document.getElementById('artist');
-        const cover = document.getElementById('cover');
-        const currTime = document.querySelector('#currTime');
-        const durTime = document.querySelector('#durTime');
-        const playlistEl = document.getElementById('playlist-el');
+    <div class="player-bar">
+        <div class="player-left">
+            <img src="https://placehold.co/60x60/181818/181818" class="current-cover" id="cover">
+            <div class="current-info">
+                <h4 id="title">Escolha uma música</h4>
+                <p id="artist">...</p>
+            </div>
+            <button id="like-current" class="like-btn" style="margin-left: 15px;"><i class="far fa-heart"></i></button>
+        </div>
 
-        // --- SEUS DADOS ---
+        <div class="player-center">
+            <div class="controls">
+                <button class="control-btn"><i class="fas fa-random"></i></button>
+                <button class="control-btn" id="prev"><i class="fas fa-step-backward"></i></button>
+                <button class="play-pause-btn" id="play"><i class="fas fa-play"></i></button>
+                <button class="control-btn" id="next"><i class="fas fa-step-forward"></i></button>
+                <button class="control-btn"><i class="fas fa-redo"></i></button>
+            </div>
+            <div class="progress-area">
+                <span id="currTime">0:00</span>
+                <div class="progress-bar" id="progress-container">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+                <span id="durTime">0:00</span>
+            </div>
+        </div>
+
+        <div class="player-right">
+            <i class="fas fa-volume-up" style="color:#b3b3b3; font-size:14px;"></i>
+            <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
+        </div>
+    </div>
+
+    <audio id="audio"></audio>
+
+    <div class="toast" id="toast">Salvo no Firebase! 🔥</div>
+
+    <script type="module">
+        // 1. IMPORTANDO FIREBASE (Direto da Web, sem instalar nada)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 2. SUA CONFIGURAÇÃO
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxdxpwB9Z3unaJzHgSGbNTsBqHvBHG3jo",
+            authDomain: "erpcontabil-bb166.firebaseapp.com",
+            projectId: "erpcontabil-bb166",
+            storageBucket: "erpcontabil-bb166.firebasestorage.app",
+            messagingSenderId: "929853610643",
+            appId: "1:929853610643:web:7617577b1ac611e9580b66"
+        };
+
+        // 3. INICIANDO FIREBASE
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- VARIÁVEIS DO PLAYER ---
         const cloudName = "dnmopjy8l";
         const tagName = "musicas_janai";
 
         let songs = [];
         let songIndex = 0;
+        let likedSongs = new Set(); // Conjunto para guardar IDs das músicas curtidas
 
-        // 1. Busca a lista de músicas no Cloudinary
+        // Elementos DOM
+        const audio = document.getElementById('audio');
+        const playBtn = document.getElementById('play');
+        const prevBtn = document.getElementById('prev');
+        const nextBtn = document.getElementById('next');
+        const progressContainer = document.getElementById('progress-container');
+        const progress = document.getElementById('progress');
+        const title = document.getElementById('title');
+        const artist = document.getElementById('artist');
+        const cover = document.getElementById('cover');
+        const playlistEl = document.getElementById('playlist-el');
+        const volumeSlider = document.getElementById('volume-slider');
+        const likeCurrentBtn = document.getElementById('like-current');
+
+        // --- FUNÇÕES DE BANCO DE DADOS (FIREBASE) ---
+
+        // A. Carregar Favoritos e Configurações ao iniciar
+        async function loadUserData() {
+            try {
+                // 1. Carregar músicas curtidas
+                const likesSnapshot = await getDocs(collection(db, "favoritos"));
+                likesSnapshot.forEach((doc) => {
+                    likedSongs.add(doc.data().songId); // Guarda o ID da música
+                });
+
+                // 2. Carregar configurações (Volume)
+                const settingsSnapshot = await getDocs(collection(db, "settings"));
+                settingsSnapshot.forEach((doc) => {
+                    if (doc.id === "player_config") {
+                        const savedVol = doc.data().volume;
+                        if (savedVol) {
+                            audio.volume = savedVol;
+                            volumeSlider.value = savedVol;
+                        }
+                    }
+                });
+
+                // 3. Carregar Playlists Criadas
+                loadPlaylists();
+
+                console.log("Dados do Firebase carregados!");
+            } catch (e) {
+                console.error("Erro Firebase:", e);
+            }
+        }
+
+        // B. Salvar/Remover Like
+        async function toggleLike(song) {
+            const songId = song.originalName; // ID único do Cloudinary
+            // Usa o mesmo replace para gerar o ID seguro na hora de buscar
+            const safeId = song.originalName.replace(/[^a-zA-Z0-9]/g, '_');
+            const btn = document.getElementById(`btn-like-${safeId}`);
+            const isLiked = likedSongs.has(songId);
+
+            if (isLiked) {
+                // Remover do Firebase
+                // Nota: Em produção real, seria ideal salvar o ID do documento, aqui faremos uma busca rápida para deletar
+                const q = query(collection(db, "favoritos"), where("songId", "==", songId));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((doc) => {
+                    deleteDoc(doc.ref);
+                });
+                likedSongs.delete(songId);
+                showToast("Removido dos Favoritos");
+            } else {
+                // Salvar no Firebase
+                await addDoc(collection(db, "favoritos"), {
+                    songId: songId,
+                    title: song.title,
+                    artist: song.artist,
+                    addedAt: new Date()
+                });
+                likedSongs.add(songId);
+                showToast("Adicionado aos Favoritos 💚");
+            }
+
+            // Atualiza UI
+            renderPlaylist();
+            updateLikeButtonMain();
+        }
+
+        // C. Salvar Volume
+        async function saveVolume(val) {
+            await setDoc(doc(db, "settings", "player_config"), {
+                volume: val,
+                updatedAt: new Date()
+            });
+        }
+
+        // D. Criar Playlist
+        document.getElementById('btn-create-playlist').addEventListener('click', async () => {
+            const name = prompt("Nome da nova Playlist:");
+            if (name) {
+                await addDoc(collection(db, "playlists"), {
+                    name: name,
+                    createdAt: new Date()
+                });
+                loadPlaylists();
+            }
+        });
+
+        async function loadPlaylists() {
+            const listEl = document.getElementById('user-playlists');
+            listEl.innerHTML = "";
+            const querySnapshot = await getDocs(collection(db, "playlists"));
+            querySnapshot.forEach((doc) => {
+                const btn = document.createElement('button');
+                btn.className = "nav-btn";
+                btn.innerHTML = `<span style="width:100%; overflow:hidden; text-overflow:ellipsis;">${doc.data().name}</span>`;
+                listEl.appendChild(btn);
+            });
+        }
+
+
+        // --- FUNÇÕES DO PLAYER (CLOUDINARY + LOGICA) ---
+
+        function getSmartPlaceholder(name) {
+            const text = name === "Desconhecido" ? "??" : name;
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(text)}&background=181818&color=b3b3b3&size=200&bold=true`;
+        }
+
         async function fetchMusicList() {
-            // Nota: Se seus arquivos forem MP3, use 'video'. Se a lista não carregar, tente 'raw'.
-            // Pelo seu último teste, a lista funcionou com 'video'.
+            // Primeiro carrega o que tem no Firebase
+            await loadUserData();
+
             const url = `https://res.cloudinary.com/${cloudName}/video/list/${tagName}.json`;
 
             try {
@@ -270,183 +608,206 @@
                 const data = await response.json();
 
                 songs = data.resources.map(file => {
-                    // TRUQUE: Tenta separar "Artista - Musica" pelo nome do arquivo
                     let cleanName = file.public_id;
                     let cleanArtist = "Desconhecido";
 
-                    // Se o arquivo tiver um traço " - " (ex: Ariana Grande - Breathin)
                     if (file.public_id.includes(' - ')) {
                         const parts = file.public_id.split(' - ');
-                        cleanArtist = parts[0]; // Pega a parte antes do traço
-                        cleanName = parts[1];   // Pega a parte depois do traço
+                        cleanArtist = parts[0];
+                        cleanName = parts[1];
                     }
 
                     return {
                         title: cleanName,
                         artist: cleanArtist,
-                        originalName: file.public_id, // Guarda o nome original para busca
-                        // Monta o link do áudio
+                        originalName: file.public_id,
+                        // NOVO: Cria um ID seguro removendo espaços e caracteres estranhos
+                        safeId: file.public_id.replace(/[^a-zA-Z0-9]/g, '_'),
                         audio: `https://res.cloudinary.com/${cloudName}/video/upload/v${file.version}/${file.public_id}.${file.format}`,
-                        // Capa padrão inicial (enquanto não acha a oficial)
-                        cover: "https://placehold.co/200x200/764ba2/ffffff?text=Music"
+                        cover: getSmartPlaceholder(cleanArtist)
                     };
                 });
 
-                if (songs.length > 0) {
-                    loadSong(songs[0]);
-                    renderPlaylist();
-                }
+                renderPlaylist();
 
             } catch (error) {
-                console.error("Erro:", error);
-                title.innerText = "Erro ao carregar";
+                console.log("Erro Cloudinary:", error);
+                playlistEl.innerHTML = "<p style='padding:20px'>Erro ao carregar lista.</p>";
             }
         }
 
-        // 2. Função nova: Busca a capa no iTunes
-        async function fetchAlbumCover(query) {
-            // Limpa sujeiras do nome para buscar melhor
-            const searchTerm = query.replace(/_/g, ' ');
+        // Renderiza a lista central
+        function renderPlaylist() {
+            playlistEl.innerHTML = "";
+            songs.forEach((song, index) => {
+                const isLiked = likedSongs.has(song.originalName);
+                const isActive = index === songIndex;
 
-            try {
-                // Chama a API da Apple
-                const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&media=music&limit=1`);
-                const data = await res.json();
+                const div = document.createElement('div');
+                div.className = `song-row ${isActive ? 'active' : ''}`;
 
-                if (data.results.length > 0) {
-                    // A Apple manda uma imagem pequena (100x100), aqui eu troco para pegar a (600x600)
-                    return data.results[0].artworkUrl100.replace('100x100', '600x600');
-                }
-            } catch (err) {
-                console.log("Capa não encontrada na Apple Music");
-            }
-            return null; // Retorna nulo se não achar
+                // Note que no ID do botão usamos song.safeId (sem espaços)
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; flex:1;" onclick="playSelected(${index})">
+                        <span style="color:#b3b3b3; font-size:14px; margin-right:15px; width:20px; text-align:center;">
+                            ${isActive ? '<i class="fas fa-chart-bar" style="color:#1db954"></i>' : index + 1}
+                        </span>
+                        <img src="${song.cover}" class="song-img">
+                        <div class="song-info">
+                            <div class="song-title">${song.title}</div>
+                            <div class="song-artist">${song.artist}</div>
+                        </div>
+                    </div>
+                    <div class="action-area">
+                        <button class="like-btn ${isLiked ? 'liked' : ''}" id="btn-like-${song.safeId}">
+                            <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+                        </button>
+                        <span style="font-size:12px; color:#b3b3b3;">3:45</span>
+                    </div>
+                `;
+
+                playlistEl.appendChild(div);
+
+                // Correção aqui também para buscar pelo safeId
+                const heartBtn = div.querySelector(`#btn-like-${song.safeId}`);
+                heartBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleLike(song);
+                });
+            });
+
+            // Cumprimento
+            const hr = new Date().getHours();
+            let greet = "Bom dia";
+            if (hr >= 12 && hr < 18) greet = "Boa tarde";
+            if (hr >= 18) greet = "Boa noite";
+            document.getElementById('greeting-text').innerText = greet;
         }
 
-        // 3. Carregar música e chamar a busca da capa
+        // Torna a função acessível globalmente (para o onclick do HTML funcionar com module)
+        window.playSelected = (index) => {
+            songIndex = index;
+            loadSong(songs[songIndex]);
+            playSong();
+        }
+
         async function loadSong(song) {
             title.innerText = song.title;
             artist.innerText = song.artist;
             audio.src = song.audio;
+            cover.src = song.cover;
 
-            // Coloca a capa padrão primeiro (para não ficar vazio)
-            cover.src = "https://placehold.co/200x200/764ba2/ffffff?text=Music";
+            renderPlaylist(); // Atualiza destaque visual
+            updateLikeButtonMain();
 
-            // Tenta buscar a capa oficial em segundo plano
-            updatePlaylistActive(); // Atualiza a lista visualmente
-
-            // Faz a busca usando "Artista Nome da Musica" ou só o nome do arquivo
-            const searchTerm = song.artist !== "Desconhecido"
-                ? `${song.artist} ${song.title}`
-                : song.originalName;
-
-            const officialCover = await fetchAlbumCover(searchTerm);
-
-            // Se achou, troca a imagem!
-            if (officialCover) {
-                cover.src = officialCover;
-                // Opcional: Salva no objeto para não buscar de novo se você voltar a musica
-                song.cover = officialCover;
+            // Busca capa Apple Music
+            if (song.artist !== "Desconhecido") {
+                fetchAlbumCover(`${song.artist} ${song.title}`).then(img => {
+                    if (img) {
+                        cover.src = img;
+                        // Opcional: Atualizar a miniatura na lista também seria legal
+                    }
+                });
             }
         }
 
-        // --- CONTROLES (IGUAIS AO ANTERIOR) ---
+        function updateLikeButtonMain() {
+            if (!songs[songIndex]) return;
+            const isLiked = likedSongs.has(songs[songIndex].originalName);
+            likeCurrentBtn.innerHTML = `<i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>`;
+            if (isLiked) likeCurrentBtn.classList.add('liked');
+            else likeCurrentBtn.classList.remove('liked');
+        }
+
+        // Botão de like do player principal
+        likeCurrentBtn.addEventListener('click', () => {
+            if (songs[songIndex]) toggleLike(songs[songIndex]);
+        });
+
+        async function fetchAlbumCover(query) {
+            try {
+                const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=1`);
+                if (!res.ok) return null;
+                const data = await res.json();
+                if (data.results.length > 0) return data.results[0].artworkUrl100.replace('100x100', '600x600');
+            } catch (err) { return null; }
+        }
+
+        // Funções de Controle de Áudio
         function playSong() {
-            musicContainer.classList.add('play');
-            playBtn.querySelector('i').classList.remove('fa-play');
-            playBtn.querySelector('i').classList.add('fa-pause');
             audio.play();
+            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
         }
-
         function pauseSong() {
-            musicContainer.classList.remove('play');
-            playBtn.querySelector('i').classList.add('fa-play');
-            playBtn.querySelector('i').classList.remove('fa-pause');
             audio.pause();
+            playBtn.innerHTML = '<i class="fas fa-play"></i>';
         }
 
-        function prevSong() {
+        playBtn.addEventListener('click', () => {
+            if (audio.paused) playSong();
+            else pauseSong();
+        });
+
+        prevBtn.addEventListener('click', () => {
             songIndex--;
             if (songIndex < 0) songIndex = songs.length - 1;
             loadSong(songs[songIndex]);
             playSong();
-        }
+        });
 
-        function nextSong() {
+        nextBtn.addEventListener('click', () => {
             songIndex++;
             if (songIndex > songs.length - 1) songIndex = 0;
             loadSong(songs[songIndex]);
             playSong();
-        }
+        });
 
-        function updateProgress(e) {
+        audio.addEventListener('timeupdate', (e) => {
             const { duration, currentTime } = e.srcElement;
             const progressPercent = (currentTime / duration) * 100;
             progress.style.width = `${progressPercent}%`;
 
+            // Tempo
             if (duration) {
-                let min = Math.floor(currentTime / 60);
-                let sec = Math.floor(currentTime % 60);
-                if (sec < 10) sec = `0${sec}`;
-                currTime.innerText = `${min}:${sec}`;
-
-                let minDur = Math.floor(duration / 60);
-                let secDur = Math.floor(duration % 60);
-                if (secDur < 10) secDur = `0${secDur}`;
-                durTime.innerText = `${minDur}:${secDur}`;
+                document.getElementById('currTime').innerText = formatTime(currentTime);
+                document.getElementById('durTime').innerText = formatTime(duration);
             }
-        }
+        });
 
-        function setProgress(e) {
+        audio.addEventListener('ended', () => nextBtn.click());
+
+        progressContainer.addEventListener('click', function (e) {
             const width = this.clientWidth;
             const clickX = e.offsetX;
             const duration = audio.duration;
             audio.currentTime = (clickX / width) * duration;
-        }
-
-        function renderPlaylist() {
-            playlistEl.innerHTML = "";
-            songs.forEach((song, index) => {
-                const li = document.createElement('li');
-                const displayName = song.title.length > 25 ? song.title.substring(0, 25) + '...' : song.title;
-                li.innerHTML = `<span>${displayName}</span> <span style="font-size:12px">${song.artist}</span>`;
-                li.addEventListener('click', () => {
-                    songIndex = index;
-                    loadSong(songs[songIndex]);
-                    playSong();
-                });
-                playlistEl.appendChild(li);
-            });
-            updatePlaylistActive();
-        }
-
-        function updatePlaylistActive() {
-            const items = playlistEl.querySelectorAll('li');
-            items.forEach((item, index) => {
-                if (index === songIndex) {
-                    item.classList.add('active-song');
-                } else {
-                    item.classList.remove('active-song');
-                }
-            });
-        }
-
-        playBtn.addEventListener('click', () => {
-            const isPlaying = musicContainer.classList.contains('play');
-            if (isPlaying) pauseSong();
-            else playSong();
         });
 
-        prevBtn.addEventListener('click', prevSong);
-        nextBtn.addEventListener('click', nextSong);
-        audio.addEventListener('timeupdate', updateProgress);
-        progressContainer.addEventListener('click', setProgress);
-        audio.addEventListener('ended', nextSong);
+        volumeSlider.addEventListener('input', (e) => {
+            audio.volume = e.target.value;
+        });
+        volumeSlider.addEventListener('change', (e) => {
+            saveVolume(e.target.value); // Salva no firebase ao soltar o slider
+        });
 
-        // Inicia
+        function formatTime(seconds) {
+            let min = Math.floor(seconds / 60);
+            let sec = Math.floor(seconds % 60);
+            if (sec < 10) sec = `0${sec}`;
+            return `${min}:${sec}`;
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+
+        // INICIAR TUDO
         fetchMusicList();
+
     </script>
 </body>
 
 </html>
-
