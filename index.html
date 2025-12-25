@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0610">
 
-    <title>Echoo V2</title>
+    <title>Echoo V3</title>
 
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -41,7 +41,6 @@
             flex-direction: column;
             overflow: hidden;
             user-select: none;
-            /* Previne seleção de texto no drag n drop */
         }
 
         /* --- LAYOUT --- */
@@ -102,6 +101,7 @@
             padding: 20px 20px 180px 20px;
             overflow-y: auto;
             position: relative;
+            scroll-behavior: smooth;
         }
 
         /* --- VIEWS --- */
@@ -162,16 +162,17 @@
             padding: 12px;
             border-radius: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s;
             background: rgba(255, 255, 255, 0.02);
             margin-bottom: 8px;
             position: relative;
         }
 
         .song-row:active {
-            transform: scale(0.98);
+            background-color: rgba(255, 255, 255, 0.1);
         }
 
+        /* Feedback visual sutil */
         .song-row.active {
             background-color: rgba(157, 78, 221, 0.15);
             border: 1px solid rgba(157, 78, 221, 0.3);
@@ -211,15 +212,18 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            flex-wrap: wrap;
         }
 
         .play-count-badge {
             font-size: 10px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(157, 78, 221, 0.2);
+            color: #e0ccff;
             padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
             margin-left: 5px;
+            white-space: nowrap;
         }
 
         /* PASTAS DA BIBLIOTECA */
@@ -312,6 +316,12 @@
             font-weight: 700;
             cursor: pointer;
             margin-top: 10px;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-top: 0;
         }
 
         /* --- MINI PLAYER --- */
@@ -515,7 +525,7 @@
             font-weight: bold;
         }
 
-        /* --- QUEUE & MODALS --- */
+        /* --- MODAIS & SELEÇÃO --- */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -543,7 +553,7 @@
             padding: 25px;
             transform: translateY(100%);
             transition: transform 0.3s;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -572,13 +582,47 @@
             cursor: pointer;
         }
 
-        .menu-item:last-child {
-            border-bottom: none;
+        /* Multi Select List */
+        .multi-select-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 20px;
         }
 
-        .menu-item i {
-            width: 25px;
-            color: var(--text-gray);
+        .select-row {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            justify-content: space-between;
+        }
+
+        .select-row.selected {
+            background: rgba(157, 78, 221, 0.2);
+            border: 1px solid var(--primary-purple);
+        }
+
+        .checkbox-fake {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .select-row.selected .checkbox-fake {
+            background: var(--primary-purple);
+            border-color: var(--primary-purple);
+        }
+
+        .select-row.selected .checkbox-fake i {
+            display: block;
+            font-size: 10px;
+            color: white;
         }
 
         /* Queue Specific */
@@ -609,8 +653,8 @@
         /* Avatar Grid */
         .avatar-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
             overflow-y: auto;
             max-height: 300px;
             padding: 10px 0;
@@ -619,14 +663,15 @@
         .avatar-option {
             width: 100%;
             aspect-ratio: 1/1;
-            border-radius: 50%;
-            border: 2px solid transparent;
+            border-radius: 15px;
+            border: 3px solid transparent;
             cursor: pointer;
+            background: #222;
         }
 
         .avatar-option.selected {
             border-color: var(--primary-purple);
-            box-shadow: 0 0 10px var(--primary-purple);
+            box-shadow: 0 0 15px rgba(157, 78, 221, 0.4);
         }
 
         /* Mobile Nav */
@@ -735,7 +780,7 @@
                 <i class="fas fa-plus-circle"></i> Adicionar à Playlist
             </div>
             <div class="menu-item" onclick="contextAction('details')">
-                <i class="fas fa-info-circle"></i> Ver Detalhes
+                <i class="fas fa-chart-bar"></i> Ver Estatísticas
             </div>
         </div>
     </div>
@@ -748,6 +793,14 @@
                 <i class="fas fa-plus"></i> Nova Playlist
             </div>
             <div id="playlist-select-list" style="max-height:300px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-multi-add">
+        <div class="modal-sheet" style="height:80vh;">
+            <div class="modal-title">Selecionar Músicas <i class="fas fa-times" onclick="closeModals()"></i></div>
+            <div class="multi-select-list" id="multi-select-container" style="overflow-y:auto; flex:1;"></div>
+            <button class="btn-action" onclick="finishMultiAdd()">Adicionar Selecionadas</button>
         </div>
     </div>
 
@@ -781,7 +834,7 @@
 
     <div class="modal-overlay" id="modal-avatar">
         <div class="modal-sheet">
-            <div class="modal-title">Escolha seu Avatar <i class="fas fa-times" onclick="closeModals()"></i></div>
+            <div class="modal-title">Escolha seu Personagem <i class="fas fa-times" onclick="closeModals()"></i></div>
             <div class="avatar-grid" id="avatar-list"></div>
         </div>
     </div>
@@ -842,10 +895,18 @@
                 </div>
 
                 <div id="lib-content" style="display:none;">
-                    <button class="nav-btn" onclick="closeFolder()" style="margin-bottom:10px; padding-left:0;">
-                        <i class="fas fa-arrow-left"></i> Voltar
-                    </button>
-                    <h3 id="folder-title" style="margin-bottom:15px;">Nome da Pasta</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <button class="nav-btn" onclick="backToFolders()" style="padding-left:0; width:auto;">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </button>
+                        <button class="btn-action" id="btn-add-to-pl"
+                            style="width:auto; padding:8px 15px; font-size:12px; margin:0; display:none;"
+                            onclick="openMultiSelect()">
+                            <i class="fas fa-plus"></i> Add Músicas
+                        </button>
+                    </div>
+
+                    <h3 id="folder-title" style="margin-bottom:15px;">Playlist</h3>
                     <div id="folder-list"></div>
                 </div>
             </div>
@@ -855,10 +916,10 @@
                 <div class="settings-card">
                     <div style="text-align:center; margin-bottom:20px;">
                         <img src="" id="profile-avatar-big"
-                            style="width:100px; height:100px; border-radius:50%; border:3px solid var(--primary-purple); object-fit:cover;">
+                            style="width:100px; height:100px; border-radius:50%; border:3px solid var(--primary-purple); object-fit:cover; background:#222;">
                         <br>
                         <button
-                            style="background:none; border:none; color:var(--primary-purple); font-size:12px; margin-top:5px; cursor:pointer;"
+                            style="background:none; border:none; color:var(--primary-purple); font-size:14px; margin-top:10px; cursor:pointer; font-weight:600;"
                             onclick="openAvatarPicker()">Alterar Avatar</button>
                     </div>
 
@@ -922,14 +983,11 @@
 
         <div class="fp-controls">
             <button class="btn-icon" id="btn-shuffle" onclick="toggleShuffle()"><i class="fas fa-random"></i></button>
-
             <button class="btn-icon" style="font-size:32px;" id="fp-prev"><i class="fas fa-step-backward"></i></button>
             <button class="btn-play-big" id="fp-play"><i class="fas fa-play"></i></button>
             <button class="btn-icon" style="font-size:32px;" id="fp-next"><i class="fas fa-step-forward"></i></button>
-
             <button class="btn-icon" id="btn-repeat" onclick="toggleRepeat()" style="position:relative;">
-                <i class="fas fa-redo"></i>
-                <span class="badge-repeat" id="repeat-badge"></span>
+                <i class="fas fa-redo"></i><span class="badge-repeat" id="repeat-badge"></span>
             </button>
         </div>
 
@@ -956,7 +1014,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, query, where, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CONFIG FIREBASE
+        // FIREBASE SETUP
         const firebaseConfig = {
             apiKey: "AIzaSyDxdxpwB9Z3unaJzHgSGbNTsBqHvBHG3jo",
             authDomain: "erpcontabil-bb166.firebaseapp.com",
@@ -968,66 +1026,98 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // CONFIG CLOUDINARY
         const cloudName = "dnmopjy8l";
         const tagName = "musicas_janai";
 
         // ESTADO GLOBAL
-        let allSongs = [];       // Todas as músicas carregadas
-        let currentQueue = [];   // Fila atual (pode ser playlist, busca, ou home shuffled)
-        let queueIndex = 0;      // Indice na Fila
-
+        let allSongs = [];
+        let currentQueue = [];
+        let queueIndex = 0;
         let likedSongs = new Set();
-        let playlists = [];      // {id, name, songs[]}
-        let playCounts = {};     // { songId: number }
+        let playlists = [];
+        let playCounts = {};
+
+        // Estado de navegação para o botão voltar
+        let currentOpenPlaylistId = null;
 
         let isPlaying = false;
         let shuffleMode = false;
-        let repeatMode = 0;      // 0: Off, 1: All, 2: One
+        let repeatMode = 0;
 
+        // Variáveis para resolver o bug do scroll
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isScrolling = false;
         let longPressTimer;
-        let contextTargetSong = null; // Música alvo do menu de contexto
+        let contextTargetSong = null;
+
+        // Avatares DiceBear
+        const avatarSeeds = ["Felix", "Aneka", "Jana", "Zack", "Molly", "Bear", "Leo", "Bella", "Simba", "Nala", "Loki", "Thor"];
+        const getAvatarUrl = (seed) => `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+        let currentAvatar = getAvatarUrl("Jana");
 
         const audio = document.getElementById('audio');
 
-        // AVATARS
-        const avatarOptions = [
-            "https://ui-avatars.com/api/?name=Janaí&background=9d4edd&color=fff",
-            "https://ui-avatars.com/api/?name=J&background=7b2cbf&color=fff",
-            "https://ui-avatars.com/api/?name=User&background=240046&color=fff",
-            "https://ui-avatars.com/api/?name=Music&background=ff006e&color=fff",
-            "https://ui-avatars.com/api/?name=Cool&background=3a86ff&color=fff",
-            "https://ui-avatars.com/api/?name=Fire&background=fb5607&color=fff",
-            "https://ui-avatars.com/api/?name=King&background=ffbe0b&color=000",
-            "https://ui-avatars.com/api/?name=Chill&background=8338ec&color=fff"
-        ];
-        let currentAvatar = avatarOptions[0];
-
-        // --- INICIALIZAÇÃO ---
+        // --- INICIALIZAÇÃO E HISTÓRICO ---
         window.onload = async () => {
+            // Empilha um estado inicial para garantir que o popstate funcione
+            window.history.replaceState({ page: 'home' }, '', '');
+
             await loadUserData();
             await fetchMusic();
             setupAudioListeners();
         };
 
+        // Captura o botão voltar do Android/Navegador
+        window.onpopstate = (event) => {
+            // 1. Se tem modal aberto, fecha
+            const activeModal = document.querySelector('.modal-overlay.active');
+            if (activeModal) {
+                closeModals(false); // false = não volta history pois já voltamos
+                return;
+            }
+
+            // 2. Se tem player full aberto, fecha
+            if (document.getElementById('full-player').classList.contains('active')) {
+                toggleFullScreen(false, false);
+                return;
+            }
+
+            // 3. Se está dentro de uma pasta na biblioteca, volta para grid
+            if (document.getElementById('view-library').classList.contains('active') &&
+                document.getElementById('lib-content').style.display === 'block') {
+                backToFolders(false);
+                return;
+            }
+
+            // 4. Navegação básica
+            if (event.state && event.state.page) {
+                simpleNavigate(event.state.page);
+            }
+        };
+
+        // Função de navegar sem empilhar estado duplicado (uso interno)
+        function simpleNavigate(view) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${view}`).classList.add('active');
+            document.querySelectorAll('.mob-link, .nav-btn').forEach(b => b.classList.remove('active'));
+            if (document.getElementById(`mob-${view}`)) document.getElementById(`mob-${view}`).classList.add('active');
+        }
+
         async function loadUserData() {
             try {
-                // 1. Favoritos
                 const likesSnap = await getDocs(collection(db, "favoritos"));
                 likesSnap.forEach(doc => likedSongs.add(doc.data().songId));
                 document.getElementById('count-likes').innerText = `${likedSongs.size} músicas`;
 
-                // 2. Playlists
                 const plSnap = await getDocs(collection(db, "playlists"));
                 playlists = [];
                 plSnap.forEach(d => playlists.push({ id: d.id, ...d.data() }));
                 renderLibraryFolders();
 
-                // 3. Play Counts (O DESAFIO)
                 const countsSnap = await getDocs(collection(db, "play_counts"));
                 countsSnap.forEach(d => playCounts[d.id] = d.data().count);
 
-                // 4. Perfil
                 const profileSnap = await getDoc(doc(db, "settings", "profile"));
                 if (profileSnap.exists()) {
                     const data = profileSnap.data();
@@ -1038,8 +1128,7 @@
                     if (data.avatar) currentAvatar = data.avatar;
                 }
                 updateAvatarUI();
-
-            } catch (e) { console.error("Erro Init Firebase", e); }
+            } catch (e) { console.error("Erro Firebase", e); }
         }
 
         async function fetchMusic() {
@@ -1065,15 +1154,12 @@
                     };
                 });
 
-                // Inicia com fila global
                 currentQueue = [...allSongs];
                 renderHome();
                 fetchItunesCovers();
-
-            } catch (e) { console.log("Erro fetch music", e); }
+            } catch (e) { console.log(e); }
         }
 
-        // --- FETCH COVERS (iTunes API) ---
         async function fetchItunesCovers() {
             for (let s of allSongs) {
                 try {
@@ -1082,7 +1168,6 @@
                     if (d.results?.[0]) {
                         s.cover = d.results[0].artworkUrl100.replace('100x100', '400x400');
                         s.album = d.results[0].collectionName;
-                        // Atualiza UI se visível
                         const img = document.getElementById(`img-${s.id}`);
                         if (img) img.src = s.cover;
                     }
@@ -1090,24 +1175,24 @@
             }
         }
 
-        // --- RENDERIZAÇÃO ---
+        // --- RENDER ---
         function createSongHTML(s, indexInContext, contextType) {
             const isLiked = likedSongs.has(s.id);
-            // Long Press Logic
-            const onDown = `handleTouchStart(event, '${s.id}')`;
-            const onUp = `handleTouchEnd(event, ${indexInContext}, '${contextType}')`; // Se click rapido, toca
+            // Badge de play count se for a lista Top 50
+            const playBadge = (contextType === 'top' || s.playCount > 10)
+                ? `<span class="play-count-badge"><i class="fas fa-headphones"></i> ${s.playCount}</span>` : '';
 
             return `
                 <div class="song-row ${isPlaying && currentQueue[queueIndex]?.id === s.id ? 'active' : ''}" 
-                     onmousedown="${onDown}" onmouseup="${onUp}"
-                     ontouchstart="${onDown}" ontouchend="${onUp}"
+                     ontouchstart="handleTouchStart(event, '${s.id}')" 
+                     ontouchend="handleTouchEnd(event, ${indexInContext}, '${contextType}')"
                      oncontextmenu="return false;">
                     <img src="${s.cover}" class="song-img" id="img-${s.id}" loading="lazy">
                     <div class="song-info">
                         <div class="song-title">${s.title}</div>
                         <div class="song-meta">
                             ${s.artist}
-                            ${s.playCount > 0 ? `<span class="play-count-badge"><i class="fas fa-play" style="font-size:8px;"></i> ${s.playCount}</span>` : ''}
+                            ${playBadge}
                         </div>
                     </div>
                     <button class="btn-icon" style="font-size:16px; color:${isLiked ? '#9d4edd' : '#666'}" onclick="event.stopPropagation(); toggleLike('${s.id}')">
@@ -1122,337 +1207,118 @@
             document.getElementById('greeting-text').innerText = hr < 12 ? "Bom dia" : (hr < 18 ? "Boa tarde" : "Boa noite");
             const el = document.getElementById('home-list');
             el.innerHTML = "";
-            // Mostra apenas os primeiros 20 na home para performance, ou todos
             allSongs.forEach((s, i) => el.innerHTML += createSongHTML(s, i, 'home'));
         }
 
-        // --- GESTÃO DE TOUCH / LONG PRESS ---
-        let touchStartTime = 0;
-        let isLongPress = false;
-
+        // --- LÓGICA DE TOQUE E SCROLL (CORREÇÃO) ---
         window.handleTouchStart = (e, sid) => {
-            isLongPress = false;
-            touchStartTime = Date.now();
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            isScrolling = false;
+
             contextTargetSong = allSongs.find(x => x.id === sid);
+
+            // Timer para Long Press
             longPressTimer = setTimeout(() => {
-                isLongPress = true;
-                if (navigator.vibrate) navigator.vibrate(50);
-                openContextModal();
-            }, 600); // 600ms para long press
+                if (!isScrolling) {
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    openContextModal();
+                    isScrolling = true; // Impede o clique normal se soltar depois
+                }
+            }, 600);
         }
 
         window.handleTouchEnd = (e, idx, context) => {
             clearTimeout(longPressTimer);
-            if (!isLongPress && (Date.now() - touchStartTime) < 600) {
-                // Click normal -> Tocar
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+
+            // Calcula distância
+            const diffX = Math.abs(touchEndX - touchStartX);
+            const diffY = Math.abs(touchEndY - touchStartY);
+
+            // Se moveu mais que 10px, considera Scroll
+            if (diffX > 10 || diffY > 10) {
+                isScrolling = true;
+            }
+
+            if (!isScrolling) {
                 playFromList(idx, context);
             }
         }
 
-        // --- MODAIS E CONTEXTO ---
-        window.openContextModal = () => {
-            if (!contextTargetSong) return;
-            document.getElementById('ctx-title').innerText = contextTargetSong.title;
-            document.getElementById('ctx-artist').innerText = contextTargetSong.artist;
-            document.getElementById('ctx-img').src = contextTargetSong.cover;
+        // --- PLAYLIST MULTI-SELECT ---
+        let selectedSongsForPlaylist = new Set();
 
-            const isLiked = likedSongs.has(contextTargetSong.id);
-            const icon = document.getElementById('ctx-icon-heart');
-            icon.className = isLiked ? "fas fa-heart" : "far fa-heart";
-            icon.style.color = isLiked ? "var(--primary-purple)" : "var(--text-gray)";
-
-            document.getElementById('modal-context').classList.add('active');
-        }
-
-        window.openContextForCurrent = () => {
-            if (!currentQueue[queueIndex]) return;
-            contextTargetSong = currentQueue[queueIndex];
-            openContextModal();
-        }
-
-        window.contextAction = (action) => {
-            closeModals();
-            if (action === 'like') toggleLike(contextTargetSong.id);
-            if (action === 'addPlaylist') openPlaylistSelector();
-            if (action === 'details') showDetails(contextTargetSong);
-        }
-
-        window.closeModals = () => {
-            document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-        }
-
-        // --- DETALHES E RANKING (O DESAFIO) ---
-        window.showDetails = (song) => {
-            document.getElementById('modal-details').classList.add('active');
-            document.getElementById('det-title').innerText = song.title;
-
-            // Animação de contagem
-            const count = song.playCount || 0;
-            const elCount = document.getElementById('det-count');
-            elCount.innerText = "0";
-            let c = 0;
-            const step = Math.ceil(count / 20);
-            const interval = setInterval(() => {
-                c += step;
-                if (c >= count) { c = count; clearInterval(interval); }
-                elCount.innerText = c;
-            }, 30);
-
-            // Ranking
-            const sorted = [...allSongs].sort((a, b) => b.playCount - a.playCount);
-            const rank = sorted.findIndex(s => s.id === song.id) + 1;
-            document.getElementById('det-rank').innerHTML = `<i class="fas fa-trophy"></i> Ranking: #${rank}`;
-        }
-
-        // --- PLAYLISTS ---
-        window.openPlaylistSelector = () => {
-            document.getElementById('modal-playlists').classList.add('active');
-            const list = document.getElementById('playlist-select-list');
-            list.innerHTML = "";
-            playlists.forEach(pl => {
-                const div = document.createElement('div');
-                div.className = 'menu-item';
-                div.innerHTML = `<i class="fas fa-list"></i> ${pl.name}`;
-                div.onclick = () => addToPlaylist(pl.id);
-                list.appendChild(div);
-            });
-        }
-
-        window.addToPlaylist = async (plId) => {
-            const plRef = doc(db, "playlists", plId);
-            const pl = playlists.find(p => p.id === plId);
-            let songs = pl.songs || [];
-            if (!songs.includes(contextTargetSong.id)) {
-                songs.push(contextTargetSong.id);
-                await updateDoc(plRef, { songs: songs });
-                // Atualiza local
-                pl.songs = songs;
-                showToast(`Adicionado a ${pl.name}`);
-            } else {
-                showToast("Já está na playlist!");
-            }
-            closeModals();
-        }
-
-        window.showCreatePlaylistUI = () => {
-            document.getElementById('modal-playlists').classList.remove('active');
-            document.getElementById('modal-create-pl').classList.add('active');
-            document.getElementById('new-pl-name').focus();
-        }
-
-        window.finishCreatePlaylist = async () => {
-            const name = document.getElementById('new-pl-name').value;
-            if (!name) return;
-            const docRef = await addDoc(collection(db, "playlists"), { name: name, songs: [contextTargetSong.id] });
-            playlists.push({ id: docRef.id, name: name, songs: [contextTargetSong.id] });
-            renderLibraryFolders(); // Re-render folders
-            closeModals();
-            showToast(`Playlist ${name} criada!`);
-        }
-
-        // --- PLAYER LOGIC ---
-        window.playFromList = (index, context) => {
-            // Se contexto mudou (ex: clicou na home, mas estava ouvindo playlist), atualiza a fila
-            if (context === 'home') {
-                // Se shuffle estiver ativo, embaralha a home
-                if (shuffleMode) {
-                    const clickedSong = allSongs[index];
-                    let others = allSongs.filter(s => s.id !== clickedSong.id);
-                    others.sort(() => Math.random() - 0.5);
-                    currentQueue = [clickedSong, ...others];
-                    queueIndex = 0;
-                } else {
-                    currentQueue = [...allSongs];
-                    queueIndex = index;
-                }
-            } else if (context === 'folder') {
-                // Já assumimos que currentQueue foi setada ao abrir a pasta, 
-                // mas precisamos garantir que o index bate com a visualização
-                queueIndex = index;
-            }
-
-            loadSong(currentQueue[queueIndex]);
-            playAudio();
-        }
-
-        function loadSong(s) {
-            if (!s) return;
-            document.getElementById('mini-title').innerText = s.title;
-            document.getElementById('mini-artist').innerText = s.artist;
-            document.getElementById('mini-cover').src = s.cover;
-
-            document.getElementById('fp-title').innerText = s.title;
-            document.getElementById('fp-artist').innerText = s.artist;
-            document.getElementById('fp-cover').src = s.cover;
-
-            audio.src = s.audio;
-
-            // Atualiza destaque visual
-            document.querySelectorAll('.song-row').forEach(el => el.classList.remove('active'));
-            // Tenta achar o elemento visual correspondente (pode não existir se estivermos em outra view)
-            // Lógica complexa de UI sync omitida para brevidade, foca no audio
-
-            updateLikeBtnUI(s.id);
-        }
-
-        function playAudio() {
-            audio.play().then(() => {
-                isPlaying = true;
-                updatePlayBtnUI();
-            }).catch(e => console.log(e));
-        }
-
-        // --- SHUFFLE & REPEAT ---
-        window.toggleShuffle = () => {
-            shuffleMode = !shuffleMode;
-            const btn = document.getElementById('btn-shuffle');
-            if (shuffleMode) {
-                btn.classList.add('control-active');
-                // Embaralha o RESTO da fila, mantendo a atual
-                const current = currentQueue[queueIndex];
-                let others = currentQueue.filter((s, i) => i !== queueIndex);
-                others.sort(() => Math.random() - 0.5);
-                currentQueue = [current, ...others];
-                queueIndex = 0;
-                showToast("Modo Aleatório Ligado");
-            } else {
-                btn.classList.remove('control-active');
-                showToast("Modo Normal");
-                // Idealmente restauraria a ordem original, mas para simplificar mantemos a fila atual
-            }
-        }
-
-        window.toggleRepeat = () => {
-            repeatMode = (repeatMode + 1) % 3;
-            const btn = document.getElementById('btn-repeat');
-            const badge = document.getElementById('repeat-badge');
-
-            if (repeatMode === 0) {
-                btn.classList.remove('control-active');
-                badge.innerText = "";
-                showToast("Não repetir");
-            } else if (repeatMode === 1) {
-                btn.classList.add('control-active');
-                badge.innerText = "";
-                showToast("Repetir Lista");
-            } else {
-                btn.classList.add('control-active');
-                badge.innerText = "1";
-                showToast("Repetir Música");
-            }
-        }
-
-        // --- QUEUE DRAG & DROP ---
-        window.openQueue = () => {
-            document.getElementById('modal-queue').classList.add('active');
-            renderQueue();
-        }
-
-        function renderQueue() {
-            const container = document.getElementById('queue-container');
+        window.openMultiSelect = () => {
+            selectedSongsForPlaylist.clear();
+            const container = document.getElementById('multi-select-container');
             container.innerHTML = "";
-            currentQueue.forEach((s, i) => {
+
+            // Ordena alfabeticamente
+            const sorted = [...allSongs].sort((a, b) => a.title.localeCompare(b.title));
+
+            sorted.forEach(s => {
                 const div = document.createElement('div');
-                div.className = `queue-item ${i === queueIndex ? 'playing' : ''}`;
-                div.draggable = true;
+                div.className = 'select-row';
                 div.innerHTML = `
-                    <div class="drag-handle"><i class="fas fa-bars"></i></div>
-                    <div style="flex:1">
-                        <div style="font-weight:600; font-size:14px;">${s.title}</div>
-                        <div style="font-size:11px; color:#aaa;">${s.artist}</div>
-                    </div>
+                   <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden;">
+                       <img src="${s.cover}" style="width:35px; height:35px; border-radius:5px;">
+                       <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:14px;">${s.title}</div>
+                   </div>
+                   <div class="checkbox-fake" id="chk-${s.id}"></div>
                 `;
-
-                // Eventos Drag
-                div.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text/plain', i);
-                    div.style.opacity = '0.5';
-                });
-                div.addEventListener('dragend', () => div.style.opacity = '1');
-                div.addEventListener('dragover', (e) => e.preventDefault()); // Necessário para drop
-                div.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                    const toIndex = i;
-
-                    // Move item array
-                    const item = currentQueue.splice(fromIndex, 1)[0];
-                    currentQueue.splice(toIndex, 0, item);
-
-                    // Ajusta indice da musica tocando se necessário
-                    if (queueIndex === fromIndex) queueIndex = toIndex;
-                    else if (queueIndex > fromIndex && queueIndex <= toIndex) queueIndex--;
-                    else if (queueIndex < fromIndex && queueIndex >= toIndex) queueIndex++;
-
-                    renderQueue();
-                });
-
+                div.onclick = () => {
+                    if (selectedSongsForPlaylist.has(s.id)) {
+                        selectedSongsForPlaylist.delete(s.id);
+                        div.classList.remove('selected');
+                        div.querySelector('.checkbox-fake').innerHTML = "";
+                    } else {
+                        selectedSongsForPlaylist.add(s.id);
+                        div.classList.add('selected');
+                        div.querySelector('.checkbox-fake').innerHTML = '<i class="fas fa-check"></i>';
+                    }
+                }
                 container.appendChild(div);
             });
+
+            openModal('modal-multi-add');
         }
 
-        // --- LOGICA DE AVANÇAR/VOLTAR ---
-        document.getElementById('fp-next').onclick = nextSong;
-        document.getElementById('fp-prev').onclick = prevSong;
-        document.getElementById('mini-play-btn').onclick = (e) => { e.stopPropagation(); togglePlay(); };
-        document.getElementById('fp-play').onclick = togglePlay;
+        window.finishMultiAdd = async () => {
+            if (!currentOpenPlaylistId) return;
+            const plRef = doc(db, "playlists", currentOpenPlaylistId);
+            const pl = playlists.find(p => p.id === currentOpenPlaylistId);
+            let songs = pl.songs || [];
 
-        function nextSong() {
-            if (repeatMode === 2) { audio.currentTime = 0; audio.play(); return; }
+            // Adiciona novos IDs sem duplicar
+            selectedSongsForPlaylist.forEach(sid => {
+                if (!songs.includes(sid)) songs.push(sid);
+            });
 
-            if (queueIndex < currentQueue.length - 1) {
-                queueIndex++;
-                loadSong(currentQueue[queueIndex]);
-                playAudio();
-            } else if (repeatMode === 1) {
-                queueIndex = 0;
-                loadSong(currentQueue[queueIndex]);
-                playAudio();
-            }
-        }
-        function prevSong() {
-            if (audio.currentTime > 3) { audio.currentTime = 0; return; }
-            if (queueIndex > 0) {
-                queueIndex--;
-                loadSong(currentQueue[queueIndex]);
-                playAudio();
-            }
-        }
-        function togglePlay() {
-            if (audio.paused) { audio.play(); isPlaying = true; }
-            else { audio.pause(); isPlaying = false; }
-            updatePlayBtnUI();
-        }
-        function updatePlayBtnUI() {
-            const icon = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
-            document.getElementById('mini-play-btn').innerHTML = icon;
-            document.getElementById('fp-play').innerHTML = icon;
+            await updateDoc(plRef, { songs: songs });
+            pl.songs = songs;
+
+            showToast(`${selectedSongsForPlaylist.size} músicas adicionadas!`);
+            closeModals();
+            openFolder(currentOpenPlaylistId); // Re-render folder
         }
 
-        // --- INCREMENTO DE PLAY COUNT (DESAFIO) ---
-        audio.onended = async () => {
-            // Salva no Firestore
-            const song = currentQueue[queueIndex];
-            if (song) {
-                const ref = doc(db, "play_counts", song.id);
-                // Incrementa localmente para UI imediata
-                song.playCount = (song.playCount || 0) + 1;
-                playCounts[song.id] = song.playCount;
-
-                // Incrementa no server
-                await setDoc(ref, { count: increment(1) }, { merge: true });
-                console.log("Play count incrementado para", song.title);
-            }
-            nextSong();
-        };
-
-        // --- BIBLIOTECA: PASTAS E LOGICA ---
+        // --- BIBLIOTECA E PASTAS ---
         window.openFolder = (type) => {
+            window.history.pushState({ folder: type }, '', ''); // Add History
+
+            currentOpenPlaylistId = (type !== 'likes' && type !== 'top') ? type : null;
+
             document.getElementById('lib-folders').style.display = 'none';
             document.getElementById('lib-content').style.display = 'block';
+
+            // Botão Add Musicas só para Playlists
+            const btnAdd = document.getElementById('btn-add-to-pl');
+            btnAdd.style.display = currentOpenPlaylistId ? 'block' : 'none';
+
             const list = document.getElementById('folder-list');
             list.innerHTML = "";
-
             let songsToShow = [];
 
             if (type === 'likes') {
@@ -1462,32 +1328,27 @@
                 document.getElementById('folder-title').innerText = "Mais Ouvidas (Top 50)";
                 songsToShow = [...allSongs].sort((a, b) => b.playCount - a.playCount).slice(0, 50);
             } else {
-                // É playlist
                 const pl = playlists.find(p => p.id === type);
                 document.getElementById('folder-title').innerText = pl.name;
-                // Mapeia IDs para objetos musica
                 songsToShow = (pl.songs || []).map(sid => allSongs.find(x => x.id === sid)).filter(x => x);
             }
-
-            // Atualiza fila atual para essa pasta
             currentQueue = songsToShow;
-
-            songsToShow.forEach((s, i) => {
-                list.innerHTML += createSongHTML(s, i, 'folder');
-            });
+            songsToShow.forEach((s, i) => list.innerHTML += createSongHTML(s, i, 'folder'));
         }
 
-        window.closeFolder = () => {
-            document.getElementById('lib-content').style.display = 'none';
-            document.getElementById('lib-folders').style.display = 'grid';
+        window.backToFolders = (useHistory = true) => {
+            if (useHistory) window.history.back(); // Isso vai triggar o onpopstate
+            else {
+                // UI changes reais
+                document.getElementById('lib-content').style.display = 'none';
+                document.getElementById('lib-folders').style.display = 'grid';
+                currentOpenPlaylistId = null;
+            }
         }
 
         function renderLibraryFolders() {
-            // Renderiza apenas as playlists customizadas no grid, mantendo fixos Favoritos e Top
             const grid = document.getElementById('lib-folders');
-            // Remove tudo que não é fixo (mais de 2 filhos)
             while (grid.children.length > 2) { grid.removeChild(grid.lastChild); }
-
             playlists.forEach(pl => {
                 const div = document.createElement('div');
                 div.className = 'folder-card';
@@ -1501,7 +1362,102 @@
             });
         }
 
-        // --- OUTROS ---
+        // --- HELPER DE MODAL COM HISTÓRICO ---
+        function openModal(id) {
+            window.history.pushState({ modal: id }, '', '');
+            document.getElementById(id).classList.add('active');
+        }
+
+        window.openContextModal = () => {
+            if (contextTargetSong) {
+                document.getElementById('ctx-title').innerText = contextTargetSong.title;
+                document.getElementById('ctx-artist').innerText = contextTargetSong.artist;
+                document.getElementById('ctx-img').src = contextTargetSong.cover;
+                const isLiked = likedSongs.has(contextTargetSong.id);
+                const icon = document.getElementById('ctx-icon-heart');
+                icon.className = isLiked ? "fas fa-heart" : "far fa-heart";
+                icon.style.color = isLiked ? "var(--primary-purple)" : "var(--text-gray)";
+                openModal('modal-context');
+            }
+        }
+
+        window.openContextForCurrent = () => {
+            if (!currentQueue[queueIndex]) return;
+            contextTargetSong = currentQueue[queueIndex];
+            openContextModal();
+        }
+
+        window.closeModals = (useHistory = true) => {
+            if (useHistory && document.querySelector('.modal-overlay.active')) {
+                window.history.back();
+            } else {
+                document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+            }
+        }
+
+        // --- PLAYER LOGIC ---
+        window.playFromList = (index, context) => {
+            if (context === 'home') {
+                if (shuffleMode) {
+                    const clickedSong = allSongs[index];
+                    let others = allSongs.filter(s => s.id !== clickedSong.id);
+                    others.sort(() => Math.random() - 0.5);
+                    currentQueue = [clickedSong, ...others];
+                    queueIndex = 0;
+                } else {
+                    currentQueue = [...allSongs];
+                    queueIndex = index;
+                }
+            } else {
+                queueIndex = index;
+            }
+            loadSong(currentQueue[queueIndex]);
+            audio.play();
+            isPlaying = true;
+            updatePlayBtnUI();
+        }
+
+        function loadSong(s) {
+            if (!s) return;
+            document.getElementById('mini-title').innerText = s.title;
+            document.getElementById('mini-artist').innerText = s.artist;
+            document.getElementById('mini-cover').src = s.cover;
+            document.getElementById('fp-title').innerText = s.title;
+            document.getElementById('fp-artist').innerText = s.artist;
+            document.getElementById('fp-cover').src = s.cover;
+            audio.src = s.audio;
+            updateLikeBtnUI(s.id);
+        }
+
+        // --- CONTAGEM DE PLAYS ---
+        audio.onended = async () => {
+            const song = currentQueue[queueIndex];
+            if (song) {
+                // Incremento otimista UI
+                song.playCount = (song.playCount || 0) + 1;
+                playCounts[song.id] = song.playCount;
+
+                // Firestore Update
+                const ref = doc(db, "play_counts", song.id);
+                try {
+                    await setDoc(ref, { count: increment(1) }, { merge: true });
+                } catch (e) { console.error("Erro contagem", e); }
+            }
+
+            // Próxima música
+            if (repeatMode === 2) { audio.currentTime = 0; audio.play(); }
+            else if (queueIndex < currentQueue.length - 1) {
+                queueIndex++;
+                loadSong(currentQueue[queueIndex]);
+                audio.play();
+            } else if (repeatMode === 1) {
+                queueIndex = 0;
+                loadSong(currentQueue[queueIndex]);
+                audio.play();
+            }
+        };
+
+        // --- OUTRAS UI LOGICS ---
         window.toggleLike = async (sid) => {
             if (likedSongs.has(sid)) {
                 likedSongs.delete(sid);
@@ -1515,41 +1471,35 @@
                 showToast("Favoritado 💜");
             }
             updateLikeBtnUI(sid);
-            // Se estiver na pasta de likes, atualiza lista
             document.getElementById('count-likes').innerText = `${likedSongs.size} músicas`;
         }
 
         function updateLikeBtnUI(sid) {
             const isLiked = likedSongs.has(sid);
             const iconClass = isLiked ? "fas fa-heart" : "far fa-heart";
-            const color = isLiked ? "#9d4edd" : "#ffffff";
-
-            // Botão do player full
             if (currentQueue[queueIndex]?.id === sid) {
-                const fpBtn = document.getElementById('fp-like-btn');
-                fpBtn.innerHTML = `<i class="${iconClass}"></i>`;
-                fpBtn.style.color = color;
+                document.getElementById('fp-like-btn').innerHTML = `<i class="${iconClass}"></i>`;
+                document.getElementById('fp-like-btn').style.color = isLiked ? "#9d4edd" : "#ffffff";
             }
-
-            // Botões nas listas
             document.querySelectorAll(`button[onclick*="${sid}"] i`).forEach(el => {
                 el.className = iconClass;
                 el.parentElement.style.color = isLiked ? '#9d4edd' : '#666';
             });
         }
 
-        // --- AVATAR ---
+        // --- AVATAR DICEBEAR ---
         window.openAvatarPicker = () => {
-            document.getElementById('modal-avatar').classList.add('active');
             const list = document.getElementById('avatar-list');
             list.innerHTML = "";
-            avatarOptions.forEach(url => {
+            avatarSeeds.forEach(seed => {
+                const url = getAvatarUrl(seed);
                 const img = document.createElement('img');
                 img.src = url;
                 img.className = `avatar-option ${url === currentAvatar ? 'selected' : ''}`;
                 img.onclick = () => selectAvatar(url);
                 list.appendChild(img);
             });
+            openModal('modal-avatar');
         }
 
         window.selectAvatar = async (url) => {
@@ -1564,45 +1514,163 @@
             document.getElementById('profile-avatar-big').src = currentAvatar;
         }
 
-        // UTILS
-        window.toggleFullScreen = (show) => {
+        // --- CONTROLES GERAIS ---
+        window.toggleFullScreen = (show, useHistory = true) => {
             const el = document.getElementById('full-player');
-            if (show) el.classList.add('active'); else el.classList.remove('active');
+            if (show) {
+                if (useHistory) window.history.pushState({ modal: 'player' }, '', '');
+                el.classList.add('active');
+            } else {
+                if (useHistory) window.history.back(); // Triggers popstate to close
+                else el.classList.remove('active');
+            }
         }
+
         window.navigateTo = (view) => {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(`view-${view}`).classList.add('active');
-            document.querySelectorAll('.mob-link, .nav-btn').forEach(b => b.classList.remove('active'));
-            if (document.getElementById(`mob-${view}`)) document.getElementById(`mob-${view}`).classList.add('active');
-        }
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.style.opacity = '1';
-            setTimeout(() => t.style.opacity = '0', 2000);
-        }
-        document.getElementById('btn-save-profile').onclick = async () => {
-            const n = document.getElementById('input-name').value;
-            await setDoc(doc(db, "settings", "profile"), { name: n }, { merge: true });
-            document.getElementById('header-username').innerText = n;
-            showToast("Perfil salvo!");
+            window.history.pushState({ page: view }, '', '');
+            simpleNavigate(view);
         }
 
-        // Audio Time Update
+        window.contextAction = (action) => {
+            if (action === 'addPlaylist') {
+                // Fecha context menu e abre playlist selector, sem quebrar histórico
+                document.getElementById('modal-context').classList.remove('active');
+                // Abre playlist selector (sem pushState pois ja estamos "dentro" de um fluxo de modal, ou replace)
+                document.getElementById('modal-playlists').classList.add('active');
+
+                const list = document.getElementById('playlist-select-list');
+                list.innerHTML = "";
+                playlists.forEach(pl => {
+                    const div = document.createElement('div');
+                    div.className = 'menu-item';
+                    div.innerHTML = `<i class="fas fa-list"></i> ${pl.name}`;
+                    div.onclick = async () => {
+                        const plRef = doc(db, "playlists", pl.id);
+                        let s = pl.songs || [];
+                        if (!s.includes(contextTargetSong.id)) {
+                            s.push(contextTargetSong.id);
+                            await updateDoc(plRef, { songs: s });
+                            pl.songs = s;
+                            showToast(`Adicionado a ${pl.name}`);
+                        } else showToast("Já está na playlist!");
+                        closeModals();
+                    };
+                    list.appendChild(div);
+                });
+                return;
+            }
+            if (action === 'like') toggleLike(contextTargetSong.id);
+            if (action === 'details') showDetails(contextTargetSong);
+            closeModals();
+        }
+
+        // --- QUEUE ---
+        window.openQueue = () => {
+            const container = document.getElementById('queue-container');
+            container.innerHTML = "";
+            currentQueue.forEach((s, i) => {
+                const div = document.createElement('div');
+                div.className = `queue-item ${i === queueIndex ? 'playing' : ''}`;
+                div.draggable = true;
+                div.innerHTML = `
+                    <div class="drag-handle"><i class="fas fa-bars"></i></div>
+                    <div style="flex:1">
+                        <div style="font-weight:600; font-size:14px;">${s.title}</div>
+                        <div style="font-size:11px; color:#aaa;">${s.artist}</div>
+                    </div>
+                `;
+                div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', i); div.style.opacity = '0.5'; });
+                div.addEventListener('dragend', () => div.style.opacity = '1');
+                div.addEventListener('dragover', (e) => e.preventDefault());
+                div.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const from = parseInt(e.dataTransfer.getData('text/plain'));
+                    const item = currentQueue.splice(from, 1)[0];
+                    currentQueue.splice(i, 0, item);
+                    if (queueIndex === from) queueIndex = i;
+                    else if (queueIndex > from && queueIndex <= i) queueIndex--;
+                    else if (queueIndex < from && queueIndex >= i) queueIndex++;
+                    window.openQueue(); // Re-render
+                });
+                container.appendChild(div);
+            });
+            openModal('modal-queue');
+        }
+
+        // --- PLAYLIST CREATE ---
+        window.showCreatePlaylistUI = () => {
+            document.getElementById('modal-playlists').classList.remove('active');
+            document.getElementById('modal-create-pl').classList.add('active');
+        }
+        window.finishCreatePlaylist = async () => {
+            const n = document.getElementById('new-pl-name').value;
+            if (n) {
+                const ref = await addDoc(collection(db, "playlists"), { name: n, songs: [contextTargetSong.id] });
+                playlists.push({ id: ref.id, name: n, songs: [contextTargetSong.id] });
+                renderLibraryFolders();
+                showToast("Playlist criada!");
+                closeModals();
+            }
+        }
+
+        // --- DETAILS ---
+        window.showDetails = (song) => {
+            openModal('modal-details');
+            document.getElementById('det-title').innerText = song.title;
+            const count = song.playCount || 0;
+            document.getElementById('det-count').innerText = count;
+            const sorted = [...allSongs].sort((a, b) => b.playCount - a.playCount);
+            const rank = sorted.findIndex(s => s.id === song.id) + 1;
+            document.getElementById('det-rank').innerHTML = `<i class="fas fa-trophy"></i> Ranking: #${rank}`;
+        }
+
+        // Listeners simples
+        window.toggleShuffle = () => {
+            shuffleMode = !shuffleMode;
+            document.getElementById('btn-shuffle').classList.toggle('control-active');
+            showToast(shuffleMode ? "Aleatório Ligado" : "Aleatório Desligado");
+        }
+        window.toggleRepeat = () => {
+            repeatMode = (repeatMode + 1) % 3;
+            const btn = document.getElementById('btn-repeat');
+            const bg = document.getElementById('repeat-badge');
+            if (repeatMode === 0) { btn.classList.remove('control-active'); bg.innerText = ""; showToast("Não repetir"); }
+            if (repeatMode === 1) { btn.classList.add('control-active'); bg.innerText = ""; showToast("Repetir Lista"); }
+            if (repeatMode === 2) { btn.classList.add('control-active'); bg.innerText = "1"; showToast("Repetir Música"); }
+        }
+
+        document.getElementById('fp-play').onclick = () => { if (audio.paused) { audio.play(); isPlaying = true; } else { audio.pause(); isPlaying = false; } updatePlayBtnUI(); };
+        document.getElementById('mini-play-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('fp-play').click(); };
+
+        function updatePlayBtnUI() {
+            const h = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+            document.getElementById('fp-play').innerHTML = h; document.getElementById('mini-play-btn').innerHTML = h;
+        }
+
         audio.ontimeupdate = () => {
-            if (!audio.duration) return;
-            const pct = (audio.currentTime / audio.duration) * 100;
-            document.getElementById('fp-progress-fill').style.width = `${pct}%`;
-            document.getElementById('fp-curr-time').innerText = fmtTime(audio.currentTime);
-            document.getElementById('fp-dur-time').innerText = fmtTime(audio.duration);
+            if (audio.duration) {
+                const pct = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('fp-progress-fill').style.width = pct + '%';
+                document.getElementById('fp-curr-time').innerText = fmtTime(audio.currentTime);
+                document.getElementById('fp-dur-time').innerText = fmtTime(audio.duration);
+            }
         }
-        function fmtTime(s) {
-            const m = Math.floor(s / 60); const sc = Math.floor(s % 60);
-            return `${m}:${sc < 10 ? '0' + sc : sc}`;
-        }
-        document.getElementById('fp-progress-container').onclick = function (e) {
-            audio.currentTime = (e.offsetX / this.clientWidth) * audio.duration;
-        }
+        function fmtTime(s) { const m = Math.floor(s / 60), sc = Math.floor(s % 60); return `${m}:${sc < 10 ? '0' + sc : sc}`; }
+        document.getElementById('fp-progress-container').onclick = function (e) { audio.currentTime = (e.offsetX / this.clientWidth) * audio.duration; }
+        document.getElementById('fp-next').onclick = () => audio.onended();
+        document.getElementById('fp-prev').onclick = () => { if (audio.currentTime > 3) audio.currentTime = 0; else if (queueIndex > 0) { queueIndex--; loadSong(currentQueue[queueIndex]); audio.play(); } };
 
+        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const el = document.getElementById('search-results');
+            el.innerHTML = "";
+            if (term.length < 1) return;
+            const res = allSongs.filter(s => s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term));
+            res.forEach(s => el.innerHTML += createSongHTML(s, 0, 'search')); // Search não tem contexto de fila indexado perfeitamente, simplificado
+        });
+
+        setupAudioListeners = () => { }; // Placeholder
     </script>
 </body>
 
