@@ -1570,13 +1570,28 @@
             }
 
             // Ação de Detalhes (CORREÇÃO AQUI)
+            // Ação de Detalhes (CORREÇÃO DEFINITIVA)
             if (action === 'details') {
-                closeModals(); // 1. Primeiro fecha o menu de contexto
+                // 1. Removemos o menu da tela manualmente (sem mexer no histórico ainda)
+                document.getElementById('modal-context').classList.remove('active');
 
-                // 2. Espera 100ms para garantir que fechou e então abre o detalhes
-                setTimeout(() => {
-                    showDetails(contextTargetSong);
-                }, 100);
+                // 2. Preparamos os dados da tela de estatísticas (Lógica copiada de showDetails)
+                const song = contextTargetSong;
+                document.getElementById('det-title').innerText = song.title;
+                document.getElementById('det-count').innerText = song.playCount || 0;
+
+                // Cálculo do ranking
+                const sorted = [...allSongs].sort((a, b) => b.playCount - a.playCount);
+                const rank = sorted.findIndex(s => s.id === song.id) + 1;
+                document.getElementById('det-rank').innerHTML = `<i class="fas fa-trophy"></i> Ranking: #${rank}`;
+
+                // 3. O TRUQUE: Usamos replaceState
+                // Em vez de empilhar uma nova janela, dizemos ao navegador:
+                // "Onde estava escrito 'Menu' no histórico, agora é 'Detalhes'"
+                window.history.replaceState({ modal: 'modal-details' }, '', '');
+
+                // 4. Mostramos a tela de detalhes
+                document.getElementById('modal-details').classList.add('active');
             }
         }
 
