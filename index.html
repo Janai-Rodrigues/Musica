@@ -57,7 +57,6 @@
             animation: none;
         }
 
-        /* Aplica animação apenas se tiver a classe 'scroll-active' */
         .scroll-active {
             padding-left: 100%;
             animation: scroll-left 10s linear infinite;
@@ -128,17 +127,22 @@
         .main-content {
             flex: 1;
             background: radial-gradient(circle at top left, #240046, var(--bg-black));
-            padding: 20px 20px 180px 20px;
+            padding: 0;
+            /* Padding removido aqui para o header sticky funcionar bem */
             overflow-y: auto;
             position: relative;
             scroll-behavior: smooth;
+        }
+
+        /* Container interno para dar padding no conteúdo que não é o header */
+        .content-padding {
+            padding: 20px 20px 180px 20px;
         }
 
         /* --- VIEWS --- */
         .view-section {
             display: none;
             animation: fadeIn 0.3s ease;
-            padding-bottom: 100px;
         }
 
         .view-section.active {
@@ -157,11 +161,21 @@
             }
         }
 
+        /* --- HEADER STICKY --- */
         .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            padding: 20px 20px 10px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(10, 6, 16, 0.85);
+            /* Fundo semi-transparente */
+            backdrop-filter: blur(12px);
+            /* Efeito de vidro */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 10px;
         }
 
         .user-pill {
@@ -173,7 +187,6 @@
             gap: 10px;
             font-weight: 600;
             font-size: 14px;
-            backdrop-filter: blur(5px);
             cursor: pointer;
         }
 
@@ -351,7 +364,6 @@
         .player-bar {
             height: var(--player-height);
             background-color: #160e22;
-            /* Fundo sólido para visibilidade */
             border-top: 1px solid #2a1b3d;
             padding: 0 15px;
             display: flex;
@@ -371,7 +383,6 @@
             align-items: center;
             flex: 1;
             overflow: hidden;
-            /* Importante para o marquee */
             margin-right: 15px;
         }
 
@@ -390,24 +401,6 @@
             flex-direction: column;
             justify-content: center;
             flex: 1;
-        }
-
-        .mini-title-container,
-        .mini-artist-container {
-            width: 100%;
-            overflow: hidden;
-            white-space: nowrap;
-        }
-
-        .mini-info h4 {
-            font-size: 14px;
-            color: white;
-            margin-bottom: 2px;
-        }
-
-        .mini-info p {
-            font-size: 12px;
-            color: #c4b5fd;
         }
 
         .player-controls-mini {
@@ -584,7 +577,7 @@
             font-weight: bold;
         }
 
-        /* --- MODAIS & SELEÇÃO --- */
+        /* --- MODAIS --- */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -645,7 +638,6 @@
             color: #ff4757;
         }
 
-        /* Multi Select List */
         .multi-select-list {
             display: flex;
             flex-direction: column;
@@ -692,6 +684,7 @@
         .queue-list {
             overflow-y: auto;
             margin-top: 10px;
+            max-height: 60vh;
         }
 
         .queue-item {
@@ -701,6 +694,8 @@
             background: rgba(255, 255, 255, 0.03);
             margin-bottom: 5px;
             border-radius: 8px;
+            touch-action: none;
+            /* Importante para o drag funcionar bem no mobile */
         }
 
         .queue-item.playing {
@@ -799,7 +794,6 @@
                 border-radius: 15px;
                 width: calc(100% - 20px);
                 background-color: #1a1025;
-                /* Fundo sólido para visibilidade */
                 padding-right: 20px;
             }
         }
@@ -930,74 +924,80 @@
                 </div>
             </div>
 
-            <div id="view-home" class="view-section active">
-                <h2 id="greeting-text">Bom dia</h2>
-                <div class="song-list" id="home-list">
-                    <p style="text-align:center; color:#666; margin-top:50px;"><i class="fas fa-spinner fa-spin"></i>
-                        Carregando...</p>
-                </div>
-            </div>
-
-            <div id="view-search" class="view-section">
-                <h2>Buscar</h2>
-                <div class="search-container">
-                    <i class="fas fa-search" style="color:var(--text-gray)"></i>
-                    <input type="text" class="search-input" id="search-input" placeholder="Músicas, artistas...">
-                </div>
-                <div class="song-list" id="search-results"></div>
-            </div>
-
-            <div id="view-library" class="view-section">
-                <h2>Sua Biblioteca</h2>
-                <div id="lib-folders" class="library-grid">
-                    <div class="folder-card" onclick="openFolder('likes')">
-                        <i class="fas fa-heart folder-icon"></i>
-                        <span class="folder-name">Favoritos</span>
-                        <span class="folder-count" id="count-likes">0 músicas</span>
-                    </div>
-                    <div class="folder-card" onclick="openFolder('top')">
-                        <i class="fas fa-chart-line folder-icon" style="color:#ffd700;"></i>
-                        <span class="folder-name">Mais Ouvidas</span>
-                        <span class="folder-count" id="count-top">Top 50</span>
+            <div class="content-padding">
+                <div id="view-home" class="view-section active">
+                    <h2 id="greeting-text">Bom dia</h2>
+                    <p style="color:#aaa; font-size:14px; margin-bottom:20px;" id="total-songs-home"></p>
+                    <div class="song-list" id="home-list">
+                        <p style="text-align:center; color:#666; margin-top:50px;"><i
+                                class="fas fa-spinner fa-spin"></i>
+                            Carregando...</p>
                     </div>
                 </div>
 
-                <div id="lib-content" style="display:none;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                        <button class="nav-btn" onclick="backToFolders()" style="padding-left:0; width:auto;">
-                            <i class="fas fa-arrow-left"></i> Voltar
-                        </button>
-                        <button class="btn-action" id="btn-add-to-pl"
-                            style="width:auto; padding:8px 15px; font-size:12px; margin:0; display:none;"
-                            onclick="openMultiSelect()">
-                            <i class="fas fa-plus"></i> Add Músicas
-                        </button>
+                <div id="view-search" class="view-section">
+                    <h2>Buscar</h2>
+                    <div class="search-container">
+                        <i class="fas fa-search" style="color:var(--text-gray)"></i>
+                        <input type="text" class="search-input" id="search-input" placeholder="Músicas, artistas...">
                     </div>
-
-                    <h3 id="folder-title" style="margin-bottom:15px;">Playlist</h3>
-                    <div id="folder-list"></div>
+                    <div class="song-list" id="search-results"></div>
                 </div>
-            </div>
 
-            <div id="view-settings" class="view-section">
-                <h2>Perfil</h2>
-                <div class="settings-card">
-                    <div style="text-align:center; margin-bottom:20px;">
-                        <img src="" id="profile-avatar-big"
-                            style="width:100px; height:100px; border-radius:50%; border:3px solid var(--primary-purple); object-fit:cover; background:#222;">
-                        <br>
-                        <button
-                            style="background:none; border:none; color:var(--primary-purple); font-size:14px; margin-top:10px; cursor:pointer; font-weight:600;"
-                            onclick="openAvatarPicker()">Alterar Avatar</button>
+                <div id="view-library" class="view-section">
+                    <h2 id="lib-main-title">Sua Biblioteca</h2>
+                    <div id="lib-folders" class="library-grid">
+                        <div class="folder-card" onclick="openFolder('likes')">
+                            <i class="fas fa-heart folder-icon"></i>
+                            <span class="folder-name">Favoritos</span>
+                            <span class="folder-count" id="count-likes">0 músicas</span>
+                        </div>
+                        <div class="folder-card" onclick="openFolder('top')">
+                            <i class="fas fa-chart-line folder-icon" style="color:#ffd700;"></i>
+                            <span class="folder-name">Mais Ouvidas</span>
+                            <span class="folder-count" id="count-top">Top 50</span>
+                        </div>
                     </div>
 
-                    <label style="color:#aaa; font-size:12px;">Nome</label>
-                    <input type="text" class="form-input" id="input-name" value="Janaí">
+                    <div id="lib-content" style="display:none;">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <button class="nav-btn" onclick="backToFolders()" style="padding-left:0; width:auto;">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </button>
+                            <button class="btn-action" id="btn-add-to-pl"
+                                style="width:auto; padding:8px 15px; font-size:12px; margin:0; display:none;"
+                                onclick="openMultiSelect()">
+                                <i class="fas fa-plus"></i> Add Músicas
+                            </button>
+                        </div>
 
-                    <label style="color:#aaa; font-size:12px;">Data de Nascimento</label>
-                    <input type="text" class="form-input" value="08/03/1998" disabled style="opacity:0.6;">
+                        <h3 id="folder-title" style="margin-bottom:5px;">Playlist</h3>
+                        <p id="folder-subtitle" style="color:#aaa; font-size:13px; margin-bottom:15px;">0 músicas</p>
+                        <div id="folder-list"></div>
+                    </div>
+                </div>
 
-                    <button class="btn-action" id="btn-save-profile">Salvar Perfil</button>
+                <div id="view-settings" class="view-section">
+                    <h2>Perfil</h2>
+                    <div class="settings-card">
+                        <div style="text-align:center; margin-bottom:20px;">
+                            <img src="" id="profile-avatar-big"
+                                style="width:100px; height:100px; border-radius:50%; border:3px solid var(--primary-purple); object-fit:cover; background:#222;">
+                            <br>
+                            <button
+                                style="background:none; border:none; color:var(--primary-purple); font-size:14px; margin-top:10px; cursor:pointer; font-weight:600;"
+                                onclick="openAvatarPicker()">Alterar Avatar</button>
+                        </div>
+
+                        <label style="color:#aaa; font-size:12px;">Nome</label>
+                        <input type="text" class="form-input" id="input-name" value="Janaí">
+
+                        <label style="color:#aaa; font-size:12px;">Data de Nascimento</label>
+                        <input type="text" class="form-input" value="08/03/1998" disabled style="opacity:0.6;">
+
+                        <button class="btn-action" id="btn-save-profile">Salvar Perfil</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1109,6 +1109,7 @@
         // ESTADO GLOBAL
         let allSongs = [];
         let currentQueue = [];
+        let searchResultsArray = []; // Array temporário para busca
         let queueIndex = 0;
         let likedSongs = new Set();
         let playlists = [];
@@ -1128,11 +1129,10 @@
         let longPressTimer;
         let contextTargetSong = null;
 
-        // Avatares "Felizes"
-        const avatarSeeds = ["Oliver", "Jack", "Harry", "Jacob", "Charlie", "Thomas", "George", "Oscar", "James", "William", "Noah", "Leo"];
-        // URL modificada para garantir sorrisos e roupas legais
-        const getAvatarUrl = (seed) => `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9&mouth=smile,laughing,twinkle&eyebrows=default,excited&clothing=hoodie,collarAndSweater,blazerAndShirt`;
-        let currentAvatar = getAvatarUrl("Oliver");
+        // Avatares "Felizes" - Versão 7.x para estabilidade
+        const avatarSeeds = ["Felix", "Oliver", "Jack", "Harry", "Jacob", "Charlie", "Thomas", "Oscar", "James", "Noah", "Leo", "Max"];
+        const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&mouth=smile&eyebrows=default&clothing=hoodie`;
+        let currentAvatar = getAvatarUrl("Felix");
 
         const audio = document.getElementById('audio');
 
@@ -1141,7 +1141,6 @@
             window.history.replaceState({ page: 'home' }, '', '');
             await loadUserData();
             await fetchMusic();
-            setupAudioListeners();
         };
 
         window.onpopstate = (event) => {
@@ -1224,6 +1223,7 @@
                 });
 
                 currentQueue = [...allSongs];
+                document.getElementById('total-songs-home').innerText = `${allSongs.length} músicas disponíveis`;
                 renderHome();
                 fetchItunesCovers();
             } catch (e) { console.log(e); }
@@ -1344,23 +1344,16 @@
             const pl = playlists.find(p => p.id === currentOpenPlaylistId);
             let currentSongs = pl.songs || [];
 
-            // Adiciona apenas se não existir
             selectedSongsForPlaylist.forEach(sid => {
                 if (!currentSongs.includes(sid)) currentSongs.push(sid);
             });
 
-            // Atualiza DB
             await updateDoc(plRef, { songs: currentSongs });
-
-            // Atualiza Local (referência)
             pl.songs = currentSongs;
-
-            // Recalcula o count visualmente na grade
             renderLibraryFolders();
-
             showToast(`${selectedSongsForPlaylist.size} músicas adicionadas!`);
             closeModals();
-            openFolder(currentOpenPlaylistId); // Re-renderiza a lista aberta
+            openFolder(currentOpenPlaylistId);
         }
 
         // --- BIBLIOTECA ---
@@ -1389,6 +1382,8 @@
                 document.getElementById('folder-title').innerText = pl.name;
                 songsToShow = (pl.songs || []).map(sid => allSongs.find(x => x.id === sid)).filter(x => x);
             }
+
+            document.getElementById('folder-subtitle').innerText = `${songsToShow.length} músicas`;
             currentQueue = songsToShow;
             songsToShow.forEach((s, i) => list.innerHTML += createSongHTML(s, i, 'folder'));
         }
@@ -1404,14 +1399,12 @@
 
         function renderLibraryFolders() {
             const grid = document.getElementById('lib-folders');
-            // Remove pastas extras (playlists do user) para recriar
             while (grid.children.length > 2) { grid.removeChild(grid.lastChild); }
 
             playlists.forEach(pl => {
                 const div = document.createElement('div');
                 div.className = 'folder-card';
                 div.onclick = () => openFolder(pl.id);
-                // Correção: Mostra o length real do array
                 const count = pl.songs ? pl.songs.length : 0;
                 div.innerHTML = `
                     <i class="fas fa-list folder-icon" style="color:#c4b5fd;"></i>
@@ -1434,13 +1427,11 @@
                 document.getElementById('ctx-artist').innerText = contextTargetSong.artist;
                 document.getElementById('ctx-img').src = contextTargetSong.cover;
 
-                // Configurar ícone Like
                 const isLiked = likedSongs.has(contextTargetSong.id);
                 const icon = document.getElementById('ctx-icon-heart');
                 icon.className = isLiked ? "fas fa-heart" : "far fa-heart";
                 icon.style.color = isLiked ? "var(--primary-purple)" : "var(--text-gray)";
 
-                // Mostrar botão de remover se estiver em playlist
                 const btnRemove = document.getElementById('btn-remove-pl');
                 btnRemove.style.display = currentOpenPlaylistId ? 'flex' : 'none';
 
@@ -1464,7 +1455,6 @@
 
         // --- ACTIONS CONTEXTO ---
         window.contextAction = async (action) => {
-            // AÇÃO REMOVER DA PLAYLIST
             if (action === 'removeFromPlaylist') {
                 if (currentOpenPlaylistId && contextTargetSong) {
                     const pl = playlists.find(p => p.id === currentOpenPlaylistId);
@@ -1474,21 +1464,19 @@
                         showToast("Removido da Playlist");
                         closeModals();
                         renderLibraryFolders();
-                        openFolder(currentOpenPlaylistId); // Re-renderiza lista
+                        openFolder(currentOpenPlaylistId);
                     }
                 }
                 return;
             }
 
-            // AÇÃO FAVORITAR (SEM FECHAR MENU)
             if (action === 'like') {
                 await toggleLike(contextTargetSong.id);
-                // Atualiza visualmente o menu instantaneamente
                 const isLiked = likedSongs.has(contextTargetSong.id);
                 const icon = document.getElementById('ctx-icon-heart');
                 icon.className = isLiked ? "fas fa-heart" : "far fa-heart";
                 icon.style.color = isLiked ? "var(--primary-purple)" : "var(--text-gray)";
-                return; // Retorna sem fechar
+                return;
             }
 
             if (action === 'addPlaylist') {
@@ -1507,7 +1495,7 @@
                             s.push(contextTargetSong.id);
                             await updateDoc(plRef, { songs: s });
                             pl.songs = s;
-                            renderLibraryFolders(); // update counts
+                            renderLibraryFolders();
                             showToast(`Adicionado a ${pl.name}`);
                         } else showToast("Já está na playlist!");
                         closeModals();
@@ -1532,7 +1520,13 @@
 
         // --- PLAYER ---
         window.playFromList = (index, context) => {
-            if (context === 'home') {
+            // FIX: Play na busca agora toca a música correta e define a fila
+            if (context === 'search') {
+                // Se for busca, a fila se torna os resultados da busca
+                currentQueue = [...searchResultsArray];
+                queueIndex = index;
+            }
+            else if (context === 'home') {
                 if (shuffleMode) {
                     const clickedSong = allSongs[index];
                     let others = allSongs.filter(s => s.id !== clickedSong.id);
@@ -1554,7 +1548,6 @@
 
         function loadSong(s) {
             if (!s) return;
-            // Mini Player Text & Scroll Logic
             const miniT = document.getElementById('mini-title');
             const miniA = document.getElementById('mini-artist');
             miniT.innerText = s.title;
@@ -1564,7 +1557,6 @@
 
             document.getElementById('mini-cover').src = s.cover;
 
-            // Full Player Text & Scroll Logic
             const fpT = document.getElementById('fp-title');
             const fpA = document.getElementById('fp-artist');
             fpT.innerText = s.title;
@@ -1577,10 +1569,8 @@
             updateLikeBtnUI(s.id);
         }
 
-        // Função para ativar scroll se o texto for maior que o container
         function checkMarquee(element) {
             element.classList.remove('scroll-active');
-            // Timeout pequeno para o render calcular a largura
             setTimeout(() => {
                 if (element.scrollWidth > element.parentElement.clientWidth) {
                     element.classList.add('scroll-active');
@@ -1588,21 +1578,17 @@
             }, 100);
         }
 
-        // --- PLAY COUNT CORRIGIDO ---
         audio.onended = async () => {
             const song = currentQueue[queueIndex];
             if (song) {
-                // 1. Atualiza Objeto Local
                 song.playCount = (song.playCount || 0) + 1;
                 playCounts[song.id] = song.playCount;
 
-                // 2. Atualiza Firebase
                 try {
                     const ref = doc(db, "play_counts", song.id);
                     await setDoc(ref, { count: increment(1) }, { merge: true });
                 } catch (e) { console.error("Erro contagem", e); }
 
-                // 3. Atualiza Badge Visual na lista (se visível)
                 const badge = document.getElementById(`badge-${song.id}`);
                 if (badge) {
                     badge.innerHTML = `<i class="fas fa-headphones"></i> ${song.playCount}`;
@@ -1622,7 +1608,6 @@
             }
         };
 
-        // --- FAVORITOS ---
         window.toggleLike = async (sid) => {
             if (likedSongs.has(sid)) {
                 likedSongs.delete(sid);
@@ -1639,7 +1624,6 @@
             updateLikeBtnUI(sid);
         }
 
-        // Configura botão de like do Full Player
         document.getElementById('fp-like-btn').onclick = () => {
             if (currentQueue[queueIndex]) {
                 toggleLike(currentQueue[queueIndex].id);
@@ -1650,21 +1634,19 @@
             const isLiked = likedSongs.has(sid);
             const iconClass = isLiked ? "fas fa-heart" : "far fa-heart";
 
-            // Full Player Big Button
             if (currentQueue[queueIndex]?.id === sid) {
                 const fpBtn = document.getElementById('fp-like-btn');
                 fpBtn.innerHTML = `<i class="${iconClass}"></i>`;
                 fpBtn.style.color = isLiked ? "#9d4edd" : "#ffffff";
             }
 
-            // Botões nas listas
             document.querySelectorAll(`button[onclick*="${sid}"] i`).forEach(el => {
                 el.className = iconClass;
                 el.parentElement.style.color = isLiked ? '#9d4edd' : '#666';
             });
         }
 
-        // --- AVATAR DICEBEAR ---
+        // --- AVATAR ---
         window.openAvatarPicker = () => {
             const list = document.getElementById('avatar-list');
             list.innerHTML = "";
@@ -1691,13 +1673,12 @@
             document.getElementById('profile-avatar-big').src = currentAvatar;
         }
 
-        // --- CONTROLES GERAIS ---
+        // --- CONTROLES GERAIS E NAVEGAÇÃO ---
         window.toggleFullScreen = (show, useHistory = true) => {
             const el = document.getElementById('full-player');
             if (show) {
                 if (useHistory) window.history.pushState({ modal: 'player' }, '', '');
                 el.classList.add('active');
-                // Check marquee ao abrir
                 checkMarquee(document.getElementById('fp-title'));
                 checkMarquee(document.getElementById('fp-artist'));
             } else {
@@ -1707,11 +1688,23 @@
         }
 
         window.navigateTo = (view) => {
+            // Lógica de reset
+            if (view === 'library') {
+                // Se já estiver na biblioteca e com pasta aberta, volta
+                if (document.getElementById('lib-content').style.display === 'block') {
+                    backToFolders(false);
+                }
+            } else if (view === 'search') {
+                // Reseta busca ao clicar
+                document.getElementById('search-input').value = "";
+                document.getElementById('search-results').innerHTML = "";
+            }
+
             window.history.pushState({ page: view }, '', '');
             simpleNavigate(view);
         }
 
-        // --- QUEUE ---
+        // --- QUEUE DRAG & SCROLL FIX ---
         window.openQueue = () => {
             const container = document.getElementById('queue-container');
             container.innerHTML = "";
@@ -1726,10 +1719,28 @@
                         <div style="font-size:11px; color:#aaa;">${s.artist}</div>
                     </div>
                 `;
-                // Drag Logic Simplificada
-                div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', i); div.style.opacity = '0.5'; });
+
+                div.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', i);
+                    div.style.opacity = '0.5';
+                });
+
                 div.addEventListener('dragend', () => div.style.opacity = '1');
-                div.addEventListener('dragover', (e) => e.preventDefault());
+
+                // DRAG OVER COM SCROLL AUTOMÁTICO
+                div.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const containerRect = container.getBoundingClientRect();
+                    const sensitivity = 50; // pixels from edge
+                    const scrollSpeed = 10;
+
+                    if (e.clientY < containerRect.top + sensitivity) {
+                        container.scrollTop -= scrollSpeed;
+                    } else if (e.clientY > containerRect.bottom - sensitivity) {
+                        container.scrollTop += scrollSpeed;
+                    }
+                });
+
                 div.addEventListener('drop', (e) => {
                     e.preventDefault();
                     const from = parseInt(e.dataTransfer.getData('text/plain'));
@@ -1745,7 +1756,6 @@
             openModal('modal-queue');
         }
 
-        // --- PLAYLIST CREATE ---
         window.showCreatePlaylistUI = () => {
             document.getElementById('modal-playlists').classList.remove('active');
             document.getElementById('modal-create-pl').classList.add('active');
@@ -1797,16 +1807,23 @@
         document.getElementById('fp-prev').onclick = () => { if (audio.currentTime > 3) audio.currentTime = 0; else if (queueIndex > 0) { queueIndex--; loadSong(currentQueue[queueIndex]); audio.play(); } };
 
         function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
+
+        // SEARCH LISTENER
         document.getElementById('search-input').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             const el = document.getElementById('search-results');
             el.innerHTML = "";
+            searchResultsArray = []; // Limpa array temporário
+
             if (term.length < 1) return;
-            const res = allSongs.filter(s => s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term));
-            res.forEach(s => el.innerHTML += createSongHTML(s, 0, 'search'));
+
+            // Filtra e preenche o array
+            searchResultsArray = allSongs.filter(s => s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term));
+
+            // Renderiza usando o índice do array temporário
+            searchResultsArray.forEach((s, i) => el.innerHTML += createSongHTML(s, i, 'search'));
         });
 
-        function setupAudioListeners() { }
     </script>
 </body>
 
