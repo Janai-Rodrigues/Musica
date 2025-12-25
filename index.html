@@ -1213,6 +1213,7 @@
                 const plSnap = await getDocs(collection(db, "playlists"));
                 playlists = [];
                 plSnap.forEach(d => playlists.push({ id: d.id, ...d.data() }));
+                playlists.sort((a, b) => a.name.localeCompare(b.name));
 
                 // Contagens de Play
                 const countsSnap = await getDocs(collection(db, "play_counts"));
@@ -1249,12 +1250,12 @@
                     const sid = f.public_id;
                     let title = "Desconhecido", artist = "Desconhecido";
 
-                    // Checa se tem renomeação salva
+                    // Checa se tem renomeação salva no Firebase
                     if (customTitles[sid]) {
                         title = customTitles[sid].title;
                         artist = customTitles[sid].artist;
                     } else {
-                        // Lógica padrão de nome do arquivo
+                        // Lógica padrão de nome do arquivo caso não tenha renomeado
                         let raw = f.public_id.replace(/_/g, ' ');
                         title = raw;
                         if (raw.includes(' - ')) { [artist, title] = raw.split(' - '); }
@@ -1272,10 +1273,15 @@
                     };
                 });
 
+                // --- ORDENAÇÃO ALFABÉTICA (A-Z) ---
+                // Isso garante que a lista principal e a busca fiquem organizadas
+                allSongs.sort((a, b) => a.title.localeCompare(b.title));
+
                 currentQueue = [...allSongs];
                 document.getElementById('total-songs-home').innerText = `${allSongs.length} músicas disponíveis`;
+
                 renderHome();
-                renderLibraryFolders(); // Renderiza pastas com contagem correta após fetch
+                renderLibraryFolders(); // Garante que as contagens nas pastas estejam certas
                 fetchItunesCovers();
             } catch (e) { console.log(e); }
         }
