@@ -43,6 +43,36 @@
             user-select: none;
         }
 
+        /* --- ANIMAÇÃO DE TEXTO (SCROLL/MARQUEE) --- */
+        .text-scroller-container {
+            overflow: hidden;
+            white-space: nowrap;
+            mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+        }
+
+        .text-scroller {
+            display: inline-block;
+            padding-left: 0;
+            animation: none;
+        }
+
+        /* Aplica animação apenas se tiver a classe 'scroll-active' */
+        .scroll-active {
+            padding-left: 100%;
+            animation: scroll-left 10s linear infinite;
+        }
+
+        @keyframes scroll-left {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
         /* --- LAYOUT --- */
         .main-wrapper {
             display: flex;
@@ -172,7 +202,6 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
-        /* Feedback visual sutil */
         .song-row.active {
             background-color: rgba(157, 78, 221, 0.15);
             border: 1px solid rgba(157, 78, 221, 0.3);
@@ -318,16 +347,11 @@
             margin-top: 10px;
         }
 
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            margin-top: 0;
-        }
-
         /* --- MINI PLAYER --- */
         .player-bar {
             height: var(--player-height);
-            background-color: rgba(18, 10, 31, 0.98);
+            background-color: #160e22;
+            /* Fundo sólido para visibilidade */
             border-top: 1px solid #2a1b3d;
             padding: 0 15px;
             display: flex;
@@ -339,6 +363,7 @@
             z-index: 1000;
             cursor: pointer;
             transition: bottom 0.3s;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.6);
         }
 
         .player-left {
@@ -346,6 +371,7 @@
             align-items: center;
             flex: 1;
             overflow: hidden;
+            /* Importante para o marquee */
             margin-right: 15px;
         }
 
@@ -356,6 +382,32 @@
             margin-right: 12px;
             object-fit: cover;
             flex-shrink: 0;
+        }
+
+        .mini-info {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .mini-title-container,
+        .mini-artist-container {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .mini-info h4 {
+            font-size: 14px;
+            color: white;
+            margin-bottom: 2px;
+        }
+
+        .mini-info p {
+            font-size: 12px;
+            color: #c4b5fd;
         }
 
         .player-controls-mini {
@@ -425,8 +477,15 @@
         .fp-info {
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
+            align-items: center;
             margin-bottom: 25px;
+            width: 100%;
+        }
+
+        .fp-text-area {
+            flex: 1;
+            overflow: hidden;
+            margin-right: 15px;
         }
 
         .fp-title {
@@ -582,6 +641,10 @@
             cursor: pointer;
         }
 
+        .menu-item-danger {
+            color: #ff4757;
+        }
+
         /* Multi Select List */
         .multi-select-list {
             display: flex;
@@ -735,7 +798,8 @@
                 margin: 0 10px;
                 border-radius: 15px;
                 width: calc(100% - 20px);
-                background-color: rgba(30, 20, 50, 0.95);
+                background-color: #1a1025;
+                /* Fundo sólido para visibilidade */
                 padding-right: 20px;
             }
         }
@@ -778,6 +842,10 @@
             </div>
             <div class="menu-item" onclick="contextAction('addPlaylist')">
                 <i class="fas fa-plus-circle"></i> Adicionar à Playlist
+            </div>
+            <div class="menu-item menu-item-danger" id="btn-remove-pl" onclick="contextAction('removeFromPlaylist')"
+                style="display:none;">
+                <i class="fas fa-trash"></i> Remover desta Playlist
             </div>
             <div class="menu-item" onclick="contextAction('details')">
                 <i class="fas fa-chart-bar"></i> Ver Estatísticas
@@ -939,8 +1007,13 @@
         <div class="player-left">
             <img src="https://placehold.co/60x60/181818/181818" class="mini-cover" id="mini-cover">
             <div class="mini-info">
-                <h4 id="mini-title">Echoo</h4>
-                <p id="mini-artist">Escolha uma música</p>
+                <div class="text-scroller-container">
+                    <div class="text-scroller" id="mini-title">Echoo</div>
+                </div>
+                <div class="text-scroller-container">
+                    <div class="text-scroller" id="mini-artist" style="font-size:12px; color:#c4b5fd;">Escolha uma
+                        música</div>
+                </div>
             </div>
         </div>
         <div class="player-controls-mini">
@@ -962,9 +1035,13 @@
         </div>
 
         <div class="fp-info">
-            <div style="overflow:hidden;">
-                <div class="fp-title" id="fp-title">Titulo</div>
-                <div class="fp-artist" id="fp-artist">Artista</div>
+            <div class="fp-text-area">
+                <div class="text-scroller-container">
+                    <div class="text-scroller fp-title" id="fp-title">Titulo</div>
+                </div>
+                <div class="text-scroller-container">
+                    <div class="text-scroller fp-artist" id="fp-artist">Artista</div>
+                </div>
             </div>
             <button id="fp-like-btn" class="btn-icon" style="font-size:24px;">
                 <i class="far fa-heart"></i>
@@ -1037,66 +1114,56 @@
         let playlists = [];
         let playCounts = {};
 
-        // Estado de navegação para o botão voltar
+        // Estado de navegação
         let currentOpenPlaylistId = null;
 
         let isPlaying = false;
         let shuffleMode = false;
         let repeatMode = 0;
 
-        // Variáveis para resolver o bug do scroll
+        // Controle de scroll e toque
         let touchStartX = 0;
         let touchStartY = 0;
         let isScrolling = false;
         let longPressTimer;
         let contextTargetSong = null;
 
-        // Avatares DiceBear
-        const avatarSeeds = ["Felix", "Aneka", "Jana", "Zack", "Molly", "Bear", "Leo", "Bella", "Simba", "Nala", "Loki", "Thor"];
-        const getAvatarUrl = (seed) => `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
-        let currentAvatar = getAvatarUrl("Jana");
+        // Avatares "Felizes"
+        const avatarSeeds = ["Oliver", "Jack", "Harry", "Jacob", "Charlie", "Thomas", "George", "Oscar", "James", "William", "Noah", "Leo"];
+        // URL modificada para garantir sorrisos e roupas legais
+        const getAvatarUrl = (seed) => `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9&mouth=smile,laughing,twinkle&eyebrows=default,excited&clothing=hoodie,collarAndSweater,blazerAndShirt`;
+        let currentAvatar = getAvatarUrl("Oliver");
 
         const audio = document.getElementById('audio');
 
-        // --- INICIALIZAÇÃO E HISTÓRICO ---
+        // --- INICIALIZAÇÃO ---
         window.onload = async () => {
-            // Empilha um estado inicial para garantir que o popstate funcione
             window.history.replaceState({ page: 'home' }, '', '');
-
             await loadUserData();
             await fetchMusic();
             setupAudioListeners();
         };
 
-        // Captura o botão voltar do Android/Navegador
         window.onpopstate = (event) => {
-            // 1. Se tem modal aberto, fecha
             const activeModal = document.querySelector('.modal-overlay.active');
             if (activeModal) {
-                closeModals(false); // false = não volta history pois já voltamos
+                closeModals(false);
                 return;
             }
-
-            // 2. Se tem player full aberto, fecha
             if (document.getElementById('full-player').classList.contains('active')) {
                 toggleFullScreen(false, false);
                 return;
             }
-
-            // 3. Se está dentro de uma pasta na biblioteca, volta para grid
             if (document.getElementById('view-library').classList.contains('active') &&
                 document.getElementById('lib-content').style.display === 'block') {
                 backToFolders(false);
                 return;
             }
-
-            // 4. Navegação básica
             if (event.state && event.state.page) {
                 simpleNavigate(event.state.page);
             }
         };
 
-        // Função de navegar sem empilhar estado duplicado (uso interno)
         function simpleNavigate(view) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${view}`).classList.add('active');
@@ -1107,6 +1174,7 @@
         async function loadUserData() {
             try {
                 const likesSnap = await getDocs(collection(db, "favoritos"));
+                likedSongs.clear();
                 likesSnap.forEach(doc => likedSongs.add(doc.data().songId));
                 document.getElementById('count-likes').innerText = `${likedSongs.size} músicas`;
 
@@ -1116,6 +1184,7 @@
                 renderLibraryFolders();
 
                 const countsSnap = await getDocs(collection(db, "play_counts"));
+                playCounts = {};
                 countsSnap.forEach(d => playCounts[d.id] = d.data().count);
 
                 const profileSnap = await getDoc(doc(db, "settings", "profile"));
@@ -1178,9 +1247,8 @@
         // --- RENDER ---
         function createSongHTML(s, indexInContext, contextType) {
             const isLiked = likedSongs.has(s.id);
-            // Badge de play count se for a lista Top 50
             const playBadge = (contextType === 'top' || s.playCount > 10)
-                ? `<span class="play-count-badge"><i class="fas fa-headphones"></i> ${s.playCount}</span>` : '';
+                ? `<span class="play-count-badge" id="badge-${s.id}"><i class="fas fa-headphones"></i> ${s.playCount}</span>` : `<span id="badge-${s.id}"></span>`;
 
             return `
                 <div class="song-row ${isPlaying && currentQueue[queueIndex]?.id === s.id ? 'active' : ''}" 
@@ -1210,20 +1278,17 @@
             allSongs.forEach((s, i) => el.innerHTML += createSongHTML(s, i, 'home'));
         }
 
-        // --- LÓGICA DE TOQUE E SCROLL (CORREÇÃO) ---
+        // --- LOGICA TOQUE ---
         window.handleTouchStart = (e, sid) => {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
             isScrolling = false;
-
             contextTargetSong = allSongs.find(x => x.id === sid);
-
-            // Timer para Long Press
             longPressTimer = setTimeout(() => {
                 if (!isScrolling) {
                     if (navigator.vibrate) navigator.vibrate(50);
                     openContextModal();
-                    isScrolling = true; // Impede o clique normal se soltar depois
+                    isScrolling = true;
                 }
             }, 600);
         }
@@ -1232,16 +1297,9 @@
             clearTimeout(longPressTimer);
             const touchEndX = e.changedTouches[0].clientX;
             const touchEndY = e.changedTouches[0].clientY;
-
-            // Calcula distância
-            const diffX = Math.abs(touchEndX - touchStartX);
-            const diffY = Math.abs(touchEndY - touchStartY);
-
-            // Se moveu mais que 10px, considera Scroll
-            if (diffX > 10 || diffY > 10) {
+            if (Math.abs(touchEndX - touchStartX) > 10 || Math.abs(touchEndY - touchStartY) > 10) {
                 isScrolling = true;
             }
-
             if (!isScrolling) {
                 playFromList(idx, context);
             }
@@ -1249,15 +1307,11 @@
 
         // --- PLAYLIST MULTI-SELECT ---
         let selectedSongsForPlaylist = new Set();
-
         window.openMultiSelect = () => {
             selectedSongsForPlaylist.clear();
             const container = document.getElementById('multi-select-container');
             container.innerHTML = "";
-
-            // Ordena alfabeticamente
             const sorted = [...allSongs].sort((a, b) => a.title.localeCompare(b.title));
-
             sorted.forEach(s => {
                 const div = document.createElement('div');
                 div.className = 'select-row';
@@ -1281,7 +1335,6 @@
                 }
                 container.appendChild(div);
             });
-
             openModal('modal-multi-add');
         }
 
@@ -1289,31 +1342,35 @@
             if (!currentOpenPlaylistId) return;
             const plRef = doc(db, "playlists", currentOpenPlaylistId);
             const pl = playlists.find(p => p.id === currentOpenPlaylistId);
-            let songs = pl.songs || [];
+            let currentSongs = pl.songs || [];
 
-            // Adiciona novos IDs sem duplicar
+            // Adiciona apenas se não existir
             selectedSongsForPlaylist.forEach(sid => {
-                if (!songs.includes(sid)) songs.push(sid);
+                if (!currentSongs.includes(sid)) currentSongs.push(sid);
             });
 
-            await updateDoc(plRef, { songs: songs });
-            pl.songs = songs;
+            // Atualiza DB
+            await updateDoc(plRef, { songs: currentSongs });
+
+            // Atualiza Local (referência)
+            pl.songs = currentSongs;
+
+            // Recalcula o count visualmente na grade
+            renderLibraryFolders();
 
             showToast(`${selectedSongsForPlaylist.size} músicas adicionadas!`);
             closeModals();
-            openFolder(currentOpenPlaylistId); // Re-render folder
+            openFolder(currentOpenPlaylistId); // Re-renderiza a lista aberta
         }
 
-        // --- BIBLIOTECA E PASTAS ---
+        // --- BIBLIOTECA ---
         window.openFolder = (type) => {
-            window.history.pushState({ folder: type }, '', ''); // Add History
-
+            window.history.pushState({ folder: type }, '', '');
             currentOpenPlaylistId = (type !== 'likes' && type !== 'top') ? type : null;
 
             document.getElementById('lib-folders').style.display = 'none';
             document.getElementById('lib-content').style.display = 'block';
 
-            // Botão Add Musicas só para Playlists
             const btnAdd = document.getElementById('btn-add-to-pl');
             btnAdd.style.display = currentOpenPlaylistId ? 'block' : 'none';
 
@@ -1337,9 +1394,8 @@
         }
 
         window.backToFolders = (useHistory = true) => {
-            if (useHistory) window.history.back(); // Isso vai triggar o onpopstate
+            if (useHistory) window.history.back();
             else {
-                // UI changes reais
                 document.getElementById('lib-content').style.display = 'none';
                 document.getElementById('lib-folders').style.display = 'grid';
                 currentOpenPlaylistId = null;
@@ -1348,21 +1404,25 @@
 
         function renderLibraryFolders() {
             const grid = document.getElementById('lib-folders');
+            // Remove pastas extras (playlists do user) para recriar
             while (grid.children.length > 2) { grid.removeChild(grid.lastChild); }
+
             playlists.forEach(pl => {
                 const div = document.createElement('div');
                 div.className = 'folder-card';
                 div.onclick = () => openFolder(pl.id);
+                // Correção: Mostra o length real do array
+                const count = pl.songs ? pl.songs.length : 0;
                 div.innerHTML = `
                     <i class="fas fa-list folder-icon" style="color:#c4b5fd;"></i>
                     <span class="folder-name">${pl.name}</span>
-                    <span class="folder-count">${pl.songs ? pl.songs.length : 0} músicas</span>
+                    <span class="folder-count">${count} músicas</span>
                 `;
                 grid.appendChild(div);
             });
         }
 
-        // --- HELPER DE MODAL COM HISTÓRICO ---
+        // --- MODAIS ---
         function openModal(id) {
             window.history.pushState({ modal: id }, '', '');
             document.getElementById(id).classList.add('active');
@@ -1373,10 +1433,17 @@
                 document.getElementById('ctx-title').innerText = contextTargetSong.title;
                 document.getElementById('ctx-artist').innerText = contextTargetSong.artist;
                 document.getElementById('ctx-img').src = contextTargetSong.cover;
+
+                // Configurar ícone Like
                 const isLiked = likedSongs.has(contextTargetSong.id);
                 const icon = document.getElementById('ctx-icon-heart');
                 icon.className = isLiked ? "fas fa-heart" : "far fa-heart";
                 icon.style.color = isLiked ? "var(--primary-purple)" : "var(--text-gray)";
+
+                // Mostrar botão de remover se estiver em playlist
+                const btnRemove = document.getElementById('btn-remove-pl');
+                btnRemove.style.display = currentOpenPlaylistId ? 'flex' : 'none';
+
                 openModal('modal-context');
             }
         }
@@ -1395,7 +1462,75 @@
             }
         }
 
-        // --- PLAYER LOGIC ---
+        // --- ACTIONS CONTEXTO ---
+        window.contextAction = async (action) => {
+            // AÇÃO REMOVER DA PLAYLIST
+            if (action === 'removeFromPlaylist') {
+                if (currentOpenPlaylistId && contextTargetSong) {
+                    const pl = playlists.find(p => p.id === currentOpenPlaylistId);
+                    if (pl) {
+                        pl.songs = pl.songs.filter(sid => sid !== contextTargetSong.id);
+                        await updateDoc(doc(db, "playlists", currentOpenPlaylistId), { songs: pl.songs });
+                        showToast("Removido da Playlist");
+                        closeModals();
+                        renderLibraryFolders();
+                        openFolder(currentOpenPlaylistId); // Re-renderiza lista
+                    }
+                }
+                return;
+            }
+
+            // AÇÃO FAVORITAR (SEM FECHAR MENU)
+            if (action === 'like') {
+                await toggleLike(contextTargetSong.id);
+                // Atualiza visualmente o menu instantaneamente
+                const isLiked = likedSongs.has(contextTargetSong.id);
+                const icon = document.getElementById('ctx-icon-heart');
+                icon.className = isLiked ? "fas fa-heart" : "far fa-heart";
+                icon.style.color = isLiked ? "var(--primary-purple)" : "var(--text-gray)";
+                return; // Retorna sem fechar
+            }
+
+            if (action === 'addPlaylist') {
+                document.getElementById('modal-context').classList.remove('active');
+                document.getElementById('modal-playlists').classList.add('active');
+                const list = document.getElementById('playlist-select-list');
+                list.innerHTML = "";
+                playlists.forEach(pl => {
+                    const div = document.createElement('div');
+                    div.className = 'menu-item';
+                    div.innerHTML = `<i class="fas fa-list"></i> ${pl.name}`;
+                    div.onclick = async () => {
+                        const plRef = doc(db, "playlists", pl.id);
+                        let s = pl.songs || [];
+                        if (!s.includes(contextTargetSong.id)) {
+                            s.push(contextTargetSong.id);
+                            await updateDoc(plRef, { songs: s });
+                            pl.songs = s;
+                            renderLibraryFolders(); // update counts
+                            showToast(`Adicionado a ${pl.name}`);
+                        } else showToast("Já está na playlist!");
+                        closeModals();
+                    };
+                    list.appendChild(div);
+                });
+                return;
+            }
+
+            if (action === 'details') {
+                document.getElementById('modal-context').classList.remove('active');
+                const song = contextTargetSong;
+                document.getElementById('det-title').innerText = song.title;
+                document.getElementById('det-count').innerText = song.playCount || 0;
+                const sorted = [...allSongs].sort((a, b) => b.playCount - a.playCount);
+                const rank = sorted.findIndex(s => s.id === song.id) + 1;
+                document.getElementById('det-rank').innerHTML = `<i class="fas fa-trophy"></i> Ranking: #${rank}`;
+                window.history.replaceState({ modal: 'modal-details' }, '', '');
+                document.getElementById('modal-details').classList.add('active');
+            }
+        }
+
+        // --- PLAYER ---
         window.playFromList = (index, context) => {
             if (context === 'home') {
                 if (shuffleMode) {
@@ -1419,32 +1554,62 @@
 
         function loadSong(s) {
             if (!s) return;
-            document.getElementById('mini-title').innerText = s.title;
-            document.getElementById('mini-artist').innerText = s.artist;
+            // Mini Player Text & Scroll Logic
+            const miniT = document.getElementById('mini-title');
+            const miniA = document.getElementById('mini-artist');
+            miniT.innerText = s.title;
+            miniA.innerText = s.artist;
+            checkMarquee(miniT);
+            checkMarquee(miniA);
+
             document.getElementById('mini-cover').src = s.cover;
-            document.getElementById('fp-title').innerText = s.title;
-            document.getElementById('fp-artist').innerText = s.artist;
+
+            // Full Player Text & Scroll Logic
+            const fpT = document.getElementById('fp-title');
+            const fpA = document.getElementById('fp-artist');
+            fpT.innerText = s.title;
+            fpA.innerText = s.artist;
+            checkMarquee(fpT);
+            checkMarquee(fpA);
+
             document.getElementById('fp-cover').src = s.cover;
             audio.src = s.audio;
             updateLikeBtnUI(s.id);
         }
 
-        // --- CONTAGEM DE PLAYS ---
+        // Função para ativar scroll se o texto for maior que o container
+        function checkMarquee(element) {
+            element.classList.remove('scroll-active');
+            // Timeout pequeno para o render calcular a largura
+            setTimeout(() => {
+                if (element.scrollWidth > element.parentElement.clientWidth) {
+                    element.classList.add('scroll-active');
+                }
+            }, 100);
+        }
+
+        // --- PLAY COUNT CORRIGIDO ---
         audio.onended = async () => {
             const song = currentQueue[queueIndex];
             if (song) {
-                // Incremento otimista UI
+                // 1. Atualiza Objeto Local
                 song.playCount = (song.playCount || 0) + 1;
                 playCounts[song.id] = song.playCount;
 
-                // Firestore Update
-                const ref = doc(db, "play_counts", song.id);
+                // 2. Atualiza Firebase
                 try {
+                    const ref = doc(db, "play_counts", song.id);
                     await setDoc(ref, { count: increment(1) }, { merge: true });
                 } catch (e) { console.error("Erro contagem", e); }
+
+                // 3. Atualiza Badge Visual na lista (se visível)
+                const badge = document.getElementById(`badge-${song.id}`);
+                if (badge) {
+                    badge.innerHTML = `<i class="fas fa-headphones"></i> ${song.playCount}`;
+                    badge.className = "play-count-badge";
+                }
             }
 
-            // Próxima música
             if (repeatMode === 2) { audio.currentTime = 0; audio.play(); }
             else if (queueIndex < currentQueue.length - 1) {
                 queueIndex++;
@@ -1457,7 +1622,7 @@
             }
         };
 
-        // --- OUTRAS UI LOGICS ---
+        // --- FAVORITOS ---
         window.toggleLike = async (sid) => {
             if (likedSongs.has(sid)) {
                 likedSongs.delete(sid);
@@ -1470,17 +1635,29 @@
                 await addDoc(collection(db, "favoritos"), { songId: sid });
                 showToast("Favoritado 💜");
             }
-            updateLikeBtnUI(sid);
             document.getElementById('count-likes').innerText = `${likedSongs.size} músicas`;
+            updateLikeBtnUI(sid);
         }
+
+        // Configura botão de like do Full Player
+        document.getElementById('fp-like-btn').onclick = () => {
+            if (currentQueue[queueIndex]) {
+                toggleLike(currentQueue[queueIndex].id);
+            }
+        };
 
         function updateLikeBtnUI(sid) {
             const isLiked = likedSongs.has(sid);
             const iconClass = isLiked ? "fas fa-heart" : "far fa-heart";
+
+            // Full Player Big Button
             if (currentQueue[queueIndex]?.id === sid) {
-                document.getElementById('fp-like-btn').innerHTML = `<i class="${iconClass}"></i>`;
-                document.getElementById('fp-like-btn').style.color = isLiked ? "#9d4edd" : "#ffffff";
+                const fpBtn = document.getElementById('fp-like-btn');
+                fpBtn.innerHTML = `<i class="${iconClass}"></i>`;
+                fpBtn.style.color = isLiked ? "#9d4edd" : "#ffffff";
             }
+
+            // Botões nas listas
             document.querySelectorAll(`button[onclick*="${sid}"] i`).forEach(el => {
                 el.className = iconClass;
                 el.parentElement.style.color = isLiked ? '#9d4edd' : '#666';
@@ -1520,8 +1697,11 @@
             if (show) {
                 if (useHistory) window.history.pushState({ modal: 'player' }, '', '');
                 el.classList.add('active');
+                // Check marquee ao abrir
+                checkMarquee(document.getElementById('fp-title'));
+                checkMarquee(document.getElementById('fp-artist'));
             } else {
-                if (useHistory) window.history.back(); // Triggers popstate to close
+                if (useHistory) window.history.back();
                 else el.classList.remove('active');
             }
         }
@@ -1529,70 +1709,6 @@
         window.navigateTo = (view) => {
             window.history.pushState({ page: view }, '', '');
             simpleNavigate(view);
-        }
-
-        window.contextAction = (action) => {
-            // Ação de Playlist (mantém como estava)
-            if (action === 'addPlaylist') {
-                document.getElementById('modal-context').classList.remove('active');
-                document.getElementById('modal-playlists').classList.add('active');
-                // ... (o restante da lógica de playlist que já existe no seu código) ...
-                // Nota: Copie a lógica de preencher a lista de playlists aqui se ela não estiver separada
-
-                // Para simplificar, vou manter a lógica original da playlist aqui resumida, 
-                // mas o foco é o conserto do 'details' abaixo:
-                const list = document.getElementById('playlist-select-list');
-                list.innerHTML = "";
-                playlists.forEach(pl => {
-                    const div = document.createElement('div');
-                    div.className = 'menu-item';
-                    div.innerHTML = `<i class="fas fa-list"></i> ${pl.name}`;
-                    div.onclick = async () => {
-                        const plRef = doc(db, "playlists", pl.id);
-                        let s = pl.songs || [];
-                        if (!s.includes(contextTargetSong.id)) {
-                            s.push(contextTargetSong.id);
-                            await updateDoc(plRef, { songs: s });
-                            pl.songs = s;
-                            showToast(`Adicionado a ${pl.name}`);
-                        } else showToast("Já está na playlist!");
-                        closeModals();
-                    };
-                    list.appendChild(div);
-                });
-                return;
-            }
-
-            // Ação de Like
-            if (action === 'like') {
-                toggleLike(contextTargetSong.id);
-                closeModals(); // Fecha o menu
-            }
-
-            // Ação de Detalhes (CORREÇÃO AQUI)
-            // Ação de Detalhes (CORREÇÃO DEFINITIVA)
-            if (action === 'details') {
-                // 1. Removemos o menu da tela manualmente (sem mexer no histórico ainda)
-                document.getElementById('modal-context').classList.remove('active');
-
-                // 2. Preparamos os dados da tela de estatísticas (Lógica copiada de showDetails)
-                const song = contextTargetSong;
-                document.getElementById('det-title').innerText = song.title;
-                document.getElementById('det-count').innerText = song.playCount || 0;
-
-                // Cálculo do ranking
-                const sorted = [...allSongs].sort((a, b) => b.playCount - a.playCount);
-                const rank = sorted.findIndex(s => s.id === song.id) + 1;
-                document.getElementById('det-rank').innerHTML = `<i class="fas fa-trophy"></i> Ranking: #${rank}`;
-
-                // 3. O TRUQUE: Usamos replaceState
-                // Em vez de empilhar uma nova janela, dizemos ao navegador:
-                // "Onde estava escrito 'Menu' no histórico, agora é 'Detalhes'"
-                window.history.replaceState({ modal: 'modal-details' }, '', '');
-
-                // 4. Mostramos a tela de detalhes
-                document.getElementById('modal-details').classList.add('active');
-            }
         }
 
         // --- QUEUE ---
@@ -1610,6 +1726,7 @@
                         <div style="font-size:11px; color:#aaa;">${s.artist}</div>
                     </div>
                 `;
+                // Drag Logic Simplificada
                 div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', i); div.style.opacity = '0.5'; });
                 div.addEventListener('dragend', () => div.style.opacity = '1');
                 div.addEventListener('dragover', (e) => e.preventDefault());
@@ -1621,7 +1738,7 @@
                     if (queueIndex === from) queueIndex = i;
                     else if (queueIndex > from && queueIndex <= i) queueIndex--;
                     else if (queueIndex < from && queueIndex >= i) queueIndex++;
-                    window.openQueue(); // Re-render
+                    window.openQueue();
                 });
                 container.appendChild(div);
             });
@@ -1644,18 +1761,6 @@
             }
         }
 
-        // --- DETAILS ---
-        window.showDetails = (song) => {
-            openModal('modal-details');
-            document.getElementById('det-title').innerText = song.title;
-            const count = song.playCount || 0;
-            document.getElementById('det-count').innerText = count;
-            const sorted = [...allSongs].sort((a, b) => b.playCount - a.playCount);
-            const rank = sorted.findIndex(s => s.id === song.id) + 1;
-            document.getElementById('det-rank').innerHTML = `<i class="fas fa-trophy"></i> Ranking: #${rank}`;
-        }
-
-        // Listeners simples
         window.toggleShuffle = () => {
             shuffleMode = !shuffleMode;
             document.getElementById('btn-shuffle').classList.toggle('control-active');
@@ -1698,10 +1803,10 @@
             el.innerHTML = "";
             if (term.length < 1) return;
             const res = allSongs.filter(s => s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term));
-            res.forEach(s => el.innerHTML += createSongHTML(s, 0, 'search')); // Search não tem contexto de fila indexado perfeitamente, simplificado
+            res.forEach(s => el.innerHTML += createSongHTML(s, 0, 'search'));
         });
 
-        setupAudioListeners = () => { }; // Placeholder
+        function setupAudioListeners() { }
     </script>
 </body>
 
