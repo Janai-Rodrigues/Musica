@@ -128,18 +128,15 @@
             flex: 1;
             background: radial-gradient(circle at top left, #240046, var(--bg-black));
             padding: 0;
-            /* Padding removido aqui para o header sticky funcionar bem */
             overflow-y: auto;
             position: relative;
             scroll-behavior: smooth;
         }
 
-        /* Container interno para dar padding no conteúdo que não é o header */
         .content-padding {
             padding: 20px 20px 180px 20px;
         }
 
-        /* --- VIEWS --- */
         .view-section {
             display: none;
             animation: fadeIn 0.3s ease;
@@ -161,7 +158,7 @@
             }
         }
 
-        /* --- HEADER STICKY --- */
+        /* --- HEADER STICKY (SÓLIDO) --- */
         .header-top {
             display: flex;
             justify-content: space-between;
@@ -170,12 +167,11 @@
             position: sticky;
             top: 0;
             z-index: 50;
-            background: rgba(10, 6, 16, 0.85);
-            /* Fundo semi-transparente */
-            backdrop-filter: blur(12px);
-            /* Efeito de vidro */
+            background-color: var(--bg-black);
+            /* Cor sólida */
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             margin-bottom: 10px;
+            /* Blur removido */
         }
 
         .user-pill {
@@ -215,9 +211,22 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
-        .song-row.active {
-            background-color: rgba(157, 78, 221, 0.15);
-            border: 1px solid rgba(157, 78, 221, 0.3);
+        /* ESTILO DA MÚSICA ATIVA (SELECIONADA) */
+        .song-row.active-song {
+            background-color: rgba(157, 78, 221, 0.2) !important;
+            border: 1px solid var(--primary-purple) !important;
+        }
+
+        /* Indicador visual extra de 'tocando' */
+        .song-row.active-song::before {
+            content: '\f04b';
+            /* Play icon font awesome */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: -10px;
+            color: var(--primary-purple);
+            font-size: 10px;
         }
 
         .song-img {
@@ -246,6 +255,11 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        /* Cor do título quando ativo */
+        .song-row.active-song .song-title {
+            color: var(--primary-purple);
         }
 
         .song-meta {
@@ -694,18 +708,19 @@
             background: rgba(255, 255, 255, 0.03);
             margin-bottom: 5px;
             border-radius: 8px;
-            touch-action: none;
-            /* Importante para o drag funcionar bem no mobile */
+            /* touch-action removido para permitir scroll */
         }
 
         .queue-item.playing {
             border: 1px solid var(--primary-purple);
+            background: rgba(157, 78, 221, 0.1);
         }
 
         .drag-handle {
             color: #555;
             padding: 10px;
             cursor: grab;
+            font-size: 18px;
         }
 
         /* Avatar Grid */
@@ -1109,7 +1124,7 @@
         // ESTADO GLOBAL
         let allSongs = [];
         let currentQueue = [];
-        let searchResultsArray = []; // Array temporário para busca
+        let searchResultsArray = [];
         let queueIndex = 0;
         let likedSongs = new Set();
         let playlists = [];
@@ -1129,7 +1144,7 @@
         let longPressTimer;
         let contextTargetSong = null;
 
-        // Avatares "Felizes" - Versão 7.x para estabilidade
+        // Avatares "Felizes" - Versão 7.x
         const avatarSeeds = ["Felix", "Oliver", "Jack", "Harry", "Jacob", "Charlie", "Thomas", "Oscar", "James", "Noah", "Leo", "Max"];
         const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&mouth=smile&eyebrows=default&clothing=hoodie`;
         let currentAvatar = getAvatarUrl("Felix");
@@ -1250,8 +1265,12 @@
             const playBadge = (contextType === 'top' || s.playCount > 10)
                 ? `<span class="play-count-badge" id="badge-${s.id}"><i class="fas fa-headphones"></i> ${s.playCount}</span>` : `<span id="badge-${s.id}"></span>`;
 
+            // Verifica se é a música atual para adicionar a classe 'active-song'
+            const isPlayingThis = (currentQueue[queueIndex]?.id === s.id);
+
             return `
-                <div class="song-row ${isPlaying && currentQueue[queueIndex]?.id === s.id ? 'active' : ''}" 
+                <div class="song-row ${isPlayingThis ? 'active-song' : ''}" 
+                     data-song-id="${s.id}"
                      ontouchstart="handleTouchStart(event, '${s.id}')" 
                      ontouchend="handleTouchEnd(event, ${indexInContext}, '${contextType}')"
                      oncontextmenu="return false;">
@@ -1303,6 +1322,23 @@
             if (!isScrolling) {
                 playFromList(idx, context);
             }
+        }
+
+        // --- GLOBAL ACTIVE UPDATE ---
+        // Função que percorre TODAS as listas visíveis e destaca a música tocando
+        function updateGlobalActiveHighlights() {
+            const currentSong = currentQueue[queueIndex];
+            if (!currentSong) return;
+
+            // Remove destaque de todos
+            document.querySelectorAll('.song-row').forEach(row => {
+                row.classList.remove('active-song');
+            });
+
+            // Adiciona destaque para todos que tenham o ID da musica atual
+            document.querySelectorAll(`.song-row[data-song-id="${currentSong.id}"]`).forEach(row => {
+                row.classList.add('active-song');
+            });
         }
 
         // --- PLAYLIST MULTI-SELECT ---
@@ -1386,6 +1422,7 @@
             document.getElementById('folder-subtitle').innerText = `${songsToShow.length} músicas`;
             currentQueue = songsToShow;
             songsToShow.forEach((s, i) => list.innerHTML += createSongHTML(s, i, 'folder'));
+            updateGlobalActiveHighlights(); // Atualiza destaque ao abrir pasta
         }
 
         window.backToFolders = (useHistory = true) => {
@@ -1520,9 +1557,7 @@
 
         // --- PLAYER ---
         window.playFromList = (index, context) => {
-            // FIX: Play na busca agora toca a música correta e define a fila
             if (context === 'search') {
-                // Se for busca, a fila se torna os resultados da busca
                 currentQueue = [...searchResultsArray];
                 queueIndex = index;
             }
@@ -1567,6 +1602,7 @@
             document.getElementById('fp-cover').src = s.cover;
             audio.src = s.audio;
             updateLikeBtnUI(s.id);
+            updateGlobalActiveHighlights(); // Atualiza destaque global
         }
 
         function checkMarquee(element) {
@@ -1688,20 +1724,19 @@
         }
 
         window.navigateTo = (view) => {
-            // Lógica de reset
             if (view === 'library') {
-                // Se já estiver na biblioteca e com pasta aberta, volta
                 if (document.getElementById('lib-content').style.display === 'block') {
                     backToFolders(false);
                 }
             } else if (view === 'search') {
-                // Reseta busca ao clicar
                 document.getElementById('search-input').value = "";
                 document.getElementById('search-results').innerHTML = "";
             }
 
             window.history.pushState({ page: view }, '', '');
             simpleNavigate(view);
+            // Atualiza highlights ao navegar para home
+            if (view === 'home') setTimeout(updateGlobalActiveHighlights, 100);
         }
 
         // --- QUEUE DRAG & SCROLL FIX ---
@@ -1712,6 +1747,8 @@
                 const div = document.createElement('div');
                 div.className = `queue-item ${i === queueIndex ? 'playing' : ''}`;
                 div.draggable = true;
+                // ID único para scroll
+                div.id = `q-item-${i}`;
                 div.innerHTML = `
                     <div class="drag-handle"><i class="fas fa-bars"></i></div>
                     <div style="flex:1">
@@ -1727,13 +1764,12 @@
 
                 div.addEventListener('dragend', () => div.style.opacity = '1');
 
-                // DRAG OVER COM SCROLL AUTOMÁTICO
                 div.addEventListener('dragover', (e) => {
                     e.preventDefault();
+                    // Lógica de scroll ao arrastar
                     const containerRect = container.getBoundingClientRect();
-                    const sensitivity = 50; // pixels from edge
+                    const sensitivity = 50;
                     const scrollSpeed = 10;
-
                     if (e.clientY < containerRect.top + sensitivity) {
                         container.scrollTop -= scrollSpeed;
                     } else if (e.clientY > containerRect.bottom - sensitivity) {
@@ -1754,6 +1790,14 @@
                 container.appendChild(div);
             });
             openModal('modal-queue');
+
+            // SCROLL AUTOMÁTICO PARA A MÚSICA TOCANDO
+            setTimeout(() => {
+                const activeItem = document.getElementById(`q-item-${queueIndex}`);
+                if (activeItem) {
+                    activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 300); // Espera o modal abrir
         }
 
         window.showCreatePlaylistUI = () => {
@@ -1808,20 +1852,15 @@
 
         function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
 
-        // SEARCH LISTENER
         document.getElementById('search-input').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             const el = document.getElementById('search-results');
             el.innerHTML = "";
-            searchResultsArray = []; // Limpa array temporário
-
+            searchResultsArray = [];
             if (term.length < 1) return;
-
-            // Filtra e preenche o array
             searchResultsArray = allSongs.filter(s => s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term));
-
-            // Renderiza usando o índice do array temporário
             searchResultsArray.forEach((s, i) => el.innerHTML += createSongHTML(s, i, 'search'));
+            updateGlobalActiveHighlights(); // Atualiza highlight na busca
         });
 
     </script>
