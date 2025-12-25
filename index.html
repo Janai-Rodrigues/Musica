@@ -158,7 +158,7 @@
             }
         }
 
-        /* --- HEADER STICKY (SÓLIDO) --- */
+        /* --- HEADER STICKY --- */
         .header-top {
             display: flex;
             justify-content: space-between;
@@ -168,10 +168,8 @@
             top: 0;
             z-index: 50;
             background-color: var(--bg-black);
-            /* Cor sólida */
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             margin-bottom: 10px;
-            /* Blur removido */
         }
 
         .user-pill {
@@ -211,16 +209,13 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
-        /* ESTILO DA MÚSICA ATIVA (SELECIONADA) */
         .song-row.active-song {
             background-color: rgba(157, 78, 221, 0.2) !important;
             border: 1px solid var(--primary-purple) !important;
         }
 
-        /* Indicador visual extra de 'tocando' */
         .song-row.active-song::before {
             content: '\f04b';
-            /* Play icon font awesome */
             font-family: "Font Awesome 6 Free";
             font-weight: 900;
             position: absolute;
@@ -257,7 +252,6 @@
             text-overflow: ellipsis;
         }
 
-        /* Cor do título quando ativo */
         .song-row.active-song .song-title {
             color: var(--primary-purple);
         }
@@ -307,6 +301,11 @@
 
         .folder-card:hover {
             background: rgba(255, 255, 255, 0.1);
+        }
+
+        .folder-card.create-new {
+            border: 2px dashed rgba(157, 78, 221, 0.5);
+            background: rgba(157, 78, 221, 0.05);
         }
 
         .folder-icon {
@@ -708,7 +707,6 @@
             background: rgba(255, 255, 255, 0.03);
             margin-bottom: 5px;
             border-radius: 8px;
-            /* touch-action removido para permitir scroll */
         }
 
         .queue-item.playing {
@@ -852,6 +850,9 @@
             <div class="menu-item" onclick="contextAction('addPlaylist')">
                 <i class="fas fa-plus-circle"></i> Adicionar à Playlist
             </div>
+            <div class="menu-item" onclick="contextAction('rename')">
+                <i class="fas fa-edit"></i> Editar Título/Artista
+            </div>
             <div class="menu-item menu-item-danger" id="btn-remove-pl" onclick="contextAction('removeFromPlaylist')"
                 style="display:none;">
                 <i class="fas fa-trash"></i> Remover desta Playlist
@@ -876,6 +877,12 @@
     <div class="modal-overlay" id="modal-multi-add">
         <div class="modal-sheet" style="height:80vh;">
             <div class="modal-title">Selecionar Músicas <i class="fas fa-times" onclick="closeModals()"></i></div>
+
+            <div style="margin-bottom:10px;">
+                <input type="text" class="form-input" id="multi-search-input" placeholder="Buscar para adicionar..."
+                    onkeyup="filterMultiList()">
+            </div>
+
             <div class="multi-select-list" id="multi-select-container" style="overflow-y:auto; flex:1;"></div>
             <button class="btn-action" onclick="finishMultiAdd()">Adicionar Selecionadas</button>
         </div>
@@ -886,6 +893,17 @@
             <div class="modal-title">Nome da Playlist</div>
             <input type="text" class="form-input" id="new-pl-name" placeholder="Ex: Treino, Relax...">
             <button class="btn-action" onclick="finishCreatePlaylist()">Criar</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-rename">
+        <div class="modal-sheet" style="transform: translateY(-50%); top:50%; bottom:auto; border-radius:25px;">
+            <div class="modal-title">Editar Música</div>
+            <label style="font-size:12px; color:#aaa;">Título</label>
+            <input type="text" class="form-input" id="rename-title">
+            <label style="font-size:12px; color:#aaa;">Artista</label>
+            <input type="text" class="form-input" id="rename-artist">
+            <button class="btn-action" onclick="finishRename()">Salvar Alterações</button>
         </div>
     </div>
 
@@ -945,8 +963,7 @@
                     <p style="color:#aaa; font-size:14px; margin-bottom:20px;" id="total-songs-home"></p>
                     <div class="song-list" id="home-list">
                         <p style="text-align:center; color:#666; margin-top:50px;"><i
-                                class="fas fa-spinner fa-spin"></i>
-                            Carregando...</p>
+                                class="fas fa-spinner fa-spin"></i> Carregando...</p>
                     </div>
                 </div>
 
@@ -962,16 +979,6 @@
                 <div id="view-library" class="view-section">
                     <h2 id="lib-main-title">Sua Biblioteca</h2>
                     <div id="lib-folders" class="library-grid">
-                        <div class="folder-card" onclick="openFolder('likes')">
-                            <i class="fas fa-heart folder-icon"></i>
-                            <span class="folder-name">Favoritos</span>
-                            <span class="folder-count" id="count-likes">0 músicas</span>
-                        </div>
-                        <div class="folder-card" onclick="openFolder('top')">
-                            <i class="fas fa-chart-line folder-icon" style="color:#ffd700;"></i>
-                            <span class="folder-name">Mais Ouvidas</span>
-                            <span class="folder-count" id="count-top">Top 50</span>
-                        </div>
                     </div>
 
                     <div id="lib-content" style="display:none;">
@@ -1129,6 +1136,7 @@
         let likedSongs = new Set();
         let playlists = [];
         let playCounts = {};
+        let customTitles = {}; // Para armazenar renomeações { songId: {title, artist} }
 
         // Estado de navegação
         let currentOpenPlaylistId = null;
@@ -1156,6 +1164,7 @@
             window.history.replaceState({ page: 'home' }, '', '');
             await loadUserData();
             await fetchMusic();
+            setupMediaSession();
         };
 
         window.onpopstate = (event) => {
@@ -1183,24 +1192,36 @@
             document.getElementById(`view-${view}`).classList.add('active');
             document.querySelectorAll('.mob-link, .nav-btn').forEach(b => b.classList.remove('active'));
             if (document.getElementById(`mob-${view}`)) document.getElementById(`mob-${view}`).classList.add('active');
+
+            if (view === 'library') renderLibraryFolders(); // Re-render para garantir contagens certas
         }
 
         async function loadUserData() {
             try {
+                // Likes
                 const likesSnap = await getDocs(collection(db, "favoritos"));
                 likedSongs.clear();
                 likesSnap.forEach(doc => likedSongs.add(doc.data().songId));
-                document.getElementById('count-likes').innerText = `${likedSongs.size} músicas`;
+                // document.getElementById('count-likes').innerText = `${likedSongs.size} músicas`;
 
+                // Playlists
                 const plSnap = await getDocs(collection(db, "playlists"));
                 playlists = [];
                 plSnap.forEach(d => playlists.push({ id: d.id, ...d.data() }));
-                renderLibraryFolders();
 
+                // Contagens de Play
                 const countsSnap = await getDocs(collection(db, "play_counts"));
                 playCounts = {};
                 countsSnap.forEach(d => playCounts[d.id] = d.data().count);
 
+                // Renomeações (Custom Metadata)
+                const metaSnap = await getDocs(collection(db, "song_edits"));
+                customTitles = {};
+                metaSnap.forEach(d => {
+                    customTitles[d.id] = d.data();
+                });
+
+                // Perfil
                 const profileSnap = await getDoc(doc(db, "settings", "profile"));
                 if (profileSnap.exists()) {
                     const data = profileSnap.data();
@@ -1220,12 +1241,21 @@
                 const data = await res.json();
 
                 allSongs = data.resources.map(f => {
-                    let raw = f.public_id.replace(/_/g, ' ');
-                    let artist = "Desconhecido", title = raw;
-                    if (raw.includes(' - ')) { [artist, title] = raw.split(' - '); }
-                    else if (raw.includes('-')) { [artist, title] = raw.split('-'); }
-
                     const sid = f.public_id;
+                    let title = "Desconhecido", artist = "Desconhecido";
+
+                    // Checa se tem renomeação salva
+                    if (customTitles[sid]) {
+                        title = customTitles[sid].title;
+                        artist = customTitles[sid].artist;
+                    } else {
+                        // Lógica padrão de nome do arquivo
+                        let raw = f.public_id.replace(/_/g, ' ');
+                        title = raw;
+                        if (raw.includes(' - ')) { [artist, title] = raw.split(' - '); }
+                        else if (raw.includes('-')) { [artist, title] = raw.split('-'); }
+                    }
+
                     return {
                         id: sid,
                         title: title.trim(),
@@ -1240,12 +1270,15 @@
                 currentQueue = [...allSongs];
                 document.getElementById('total-songs-home').innerText = `${allSongs.length} músicas disponíveis`;
                 renderHome();
+                renderLibraryFolders(); // Renderiza pastas com contagem correta após fetch
                 fetchItunesCovers();
             } catch (e) { console.log(e); }
         }
 
         async function fetchItunesCovers() {
             for (let s of allSongs) {
+                // Se já tem capa customizada (não implementado aqui, mas futuro), pula.
+                // Tenta itunes
                 try {
                     const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(s.artist + " " + s.title)}&media=music&limit=1`);
                     const d = await res.json();
@@ -1257,6 +1290,12 @@
                     }
                 } catch (e) { }
             }
+            // Atualiza capa do player se for a música atual
+            if (currentQueue[queueIndex]) {
+                document.getElementById('mini-cover').src = currentQueue[queueIndex].cover;
+                document.getElementById('fp-cover').src = currentQueue[queueIndex].cover;
+                setupMediaSession(); // Atualiza notificação com capa nova
+            }
         }
 
         // --- RENDER ---
@@ -1265,7 +1304,6 @@
             const playBadge = (contextType === 'top' || s.playCount > 10)
                 ? `<span class="play-count-badge" id="badge-${s.id}"><i class="fas fa-headphones"></i> ${s.playCount}</span>` : `<span id="badge-${s.id}"></span>`;
 
-            // Verifica se é a música atual para adicionar a classe 'active-song'
             const isPlayingThis = (currentQueue[queueIndex]?.id === s.id);
 
             return `
@@ -1324,39 +1362,77 @@
             }
         }
 
-        // --- GLOBAL ACTIVE UPDATE ---
-        // Função que percorre TODAS as listas visíveis e destaca a música tocando
         function updateGlobalActiveHighlights() {
             const currentSong = currentQueue[queueIndex];
             if (!currentSong) return;
-
-            // Remove destaque de todos
-            document.querySelectorAll('.song-row').forEach(row => {
-                row.classList.remove('active-song');
-            });
-
-            // Adiciona destaque para todos que tenham o ID da musica atual
-            document.querySelectorAll(`.song-row[data-song-id="${currentSong.id}"]`).forEach(row => {
-                row.classList.add('active-song');
-            });
+            document.querySelectorAll('.song-row').forEach(row => row.classList.remove('active-song'));
+            document.querySelectorAll(`.song-row[data-song-id="${currentSong.id}"]`).forEach(row => row.classList.add('active-song'));
         }
 
-        // --- PLAYLIST MULTI-SELECT ---
+        // --- MEDIA SESSION (NOTIFICAÇÕES DO CELULAR) ---
+        function setupMediaSession() {
+            if ('mediaSession' in navigator && currentQueue[queueIndex]) {
+                const s = currentQueue[queueIndex];
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: s.title,
+                    artist: s.artist,
+                    album: s.album || "Echoo",
+                    artwork: [
+                        { src: s.cover, sizes: '96x96', type: 'image/jpeg' },
+                        { src: s.cover, sizes: '128x128', type: 'image/jpeg' },
+                        { src: s.cover, sizes: '192x192', type: 'image/jpeg' },
+                        { src: s.cover, sizes: '256x256', type: 'image/jpeg' },
+                        { src: s.cover, sizes: '384x384', type: 'image/jpeg' },
+                        { src: s.cover, sizes: '512x512', type: 'image/jpeg' },
+                    ]
+                });
+
+                navigator.mediaSession.setActionHandler('play', () => {
+                    audio.play(); isPlaying = true; updatePlayBtnUI();
+                });
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    audio.pause(); isPlaying = false; updatePlayBtnUI();
+                });
+                navigator.mediaSession.setActionHandler('previoustrack', () => document.getElementById('fp-prev').click());
+                navigator.mediaSession.setActionHandler('nexttrack', () => document.getElementById('fp-next').click());
+            }
+        }
+
+        // --- PLAYLIST MULTI-SELECT COM BUSCA ---
         let selectedSongsForPlaylist = new Set();
+        let allSongsForMultiSelect = []; // Cache para filtro
+
         window.openMultiSelect = () => {
             selectedSongsForPlaylist.clear();
+            document.getElementById('multi-search-input').value = ""; // Limpa busca
             const container = document.getElementById('multi-select-container');
             container.innerHTML = "";
-            const sorted = [...allSongs].sort((a, b) => a.title.localeCompare(b.title));
-            sorted.forEach(s => {
+
+            // Ordena e guarda referencia
+            allSongsForMultiSelect = [...allSongs].sort((a, b) => a.title.localeCompare(b.title));
+
+            renderMultiSelectList(allSongsForMultiSelect);
+            openModal('modal-multi-add');
+        }
+
+        function renderMultiSelectList(list) {
+            const container = document.getElementById('multi-select-container');
+            container.innerHTML = "";
+            list.forEach(s => {
                 const div = document.createElement('div');
                 div.className = 'select-row';
+                if (selectedSongsForPlaylist.has(s.id)) div.classList.add('selected');
+
                 div.innerHTML = `
                    <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden;">
                        <img src="${s.cover}" style="width:35px; height:35px; border-radius:5px;">
-                       <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:14px;">${s.title}</div>
+                       <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:14px;">
+                            ${s.title} <br><span style="font-size:11px; color:#aaa;">${s.artist}</span>
+                       </div>
                    </div>
-                   <div class="checkbox-fake" id="chk-${s.id}"></div>
+                   <div class="checkbox-fake" id="chk-${s.id}">
+                        ${selectedSongsForPlaylist.has(s.id) ? '<i class="fas fa-check"></i>' : ''}
+                   </div>
                 `;
                 div.onclick = () => {
                     if (selectedSongsForPlaylist.has(s.id)) {
@@ -1371,7 +1447,14 @@
                 }
                 container.appendChild(div);
             });
-            openModal('modal-multi-add');
+        }
+
+        window.filterMultiList = () => {
+            const term = document.getElementById('multi-search-input').value.toLowerCase();
+            const filtered = allSongsForMultiSelect.filter(s =>
+                s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term)
+            );
+            renderMultiSelectList(filtered);
         }
 
         window.finishMultiAdd = async () => {
@@ -1422,7 +1505,7 @@
             document.getElementById('folder-subtitle').innerText = `${songsToShow.length} músicas`;
             currentQueue = songsToShow;
             songsToShow.forEach((s, i) => list.innerHTML += createSongHTML(s, i, 'folder'));
-            updateGlobalActiveHighlights(); // Atualiza destaque ao abrir pasta
+            updateGlobalActiveHighlights();
         }
 
         window.backToFolders = (useHistory = true) => {
@@ -1431,13 +1514,49 @@
                 document.getElementById('lib-content').style.display = 'none';
                 document.getElementById('lib-folders').style.display = 'grid';
                 currentOpenPlaylistId = null;
+                renderLibraryFolders(); // Garante atualização de contagem ao voltar
             }
         }
 
         function renderLibraryFolders() {
             const grid = document.getElementById('lib-folders');
-            while (grid.children.length > 2) { grid.removeChild(grid.lastChild); }
+            grid.innerHTML = ""; // Limpa tudo
 
+            // 1. Botão Criar Playlist
+            const createDiv = document.createElement('div');
+            createDiv.className = 'folder-card create-new';
+            createDiv.onclick = showCreatePlaylistUI;
+            createDiv.innerHTML = `
+                <i class="fas fa-plus folder-icon"></i>
+                <span class="folder-name">Nova Playlist</span>
+                <span class="folder-count">Criar agora</span>
+            `;
+            grid.appendChild(createDiv);
+
+            // 2. Favoritos (Contagem real)
+            const favDiv = document.createElement('div');
+            favDiv.className = 'folder-card';
+            favDiv.onclick = () => openFolder('likes');
+            favDiv.innerHTML = `
+                <i class="fas fa-heart folder-icon"></i>
+                <span class="folder-name">Favoritos</span>
+                <span class="folder-count" id="count-likes">${likedSongs.size} músicas</span>
+            `;
+            grid.appendChild(favDiv);
+
+            // 3. Top 50 (Contagem real, max 50 ou total se menor)
+            const topCount = Math.min(allSongs.length, 50);
+            const topDiv = document.createElement('div');
+            topDiv.className = 'folder-card';
+            topDiv.onclick = () => openFolder('top');
+            topDiv.innerHTML = `
+                <i class="fas fa-chart-line folder-icon" style="color:#ffd700;"></i>
+                <span class="folder-name">Mais Ouvidas</span>
+                <span class="folder-count" id="count-top">${topCount > 0 ? 'Top ' + topCount : '0 músicas'}</span>
+            `;
+            grid.appendChild(topDiv);
+
+            // 4. Playlists do Usuário (Contagem real)
             playlists.forEach(pl => {
                 const div = document.createElement('div');
                 div.className = 'folder-card';
@@ -1492,6 +1611,7 @@
 
         // --- ACTIONS CONTEXTO ---
         window.contextAction = async (action) => {
+            // REMOVER DA PLAYLIST
             if (action === 'removeFromPlaylist') {
                 if (currentOpenPlaylistId && contextTargetSong) {
                     const pl = playlists.find(p => p.id === currentOpenPlaylistId);
@@ -1507,6 +1627,7 @@
                 return;
             }
 
+            // LIKE
             if (action === 'like') {
                 await toggleLike(contextTargetSong.id);
                 const isLiked = likedSongs.has(contextTargetSong.id);
@@ -1516,6 +1637,7 @@
                 return;
             }
 
+            // ADICIONAR A PLAYLIST
             if (action === 'addPlaylist') {
                 document.getElementById('modal-context').classList.remove('active');
                 document.getElementById('modal-playlists').classList.add('active');
@@ -1542,6 +1664,16 @@
                 return;
             }
 
+            // RENOMEAR (NOVA FUNÇÃO)
+            if (action === 'rename') {
+                document.getElementById('modal-context').classList.remove('active');
+                document.getElementById('rename-title').value = contextTargetSong.title;
+                document.getElementById('rename-artist').value = contextTargetSong.artist;
+                openModal('modal-rename');
+                return;
+            }
+
+            // DETALHES
             if (action === 'details') {
                 document.getElementById('modal-context').classList.remove('active');
                 const song = contextTargetSong;
@@ -1552,6 +1684,53 @@
                 document.getElementById('det-rank').innerHTML = `<i class="fas fa-trophy"></i> Ranking: #${rank}`;
                 window.history.replaceState({ modal: 'modal-details' }, '', '');
                 document.getElementById('modal-details').classList.add('active');
+            }
+        }
+
+        // LÓGICA DE SALVAR RENOMEAÇÃO
+        window.finishRename = async () => {
+            const newT = document.getElementById('rename-title').value.trim();
+            const newA = document.getElementById('rename-artist').value.trim();
+            const sid = contextTargetSong.id;
+
+            if (newT && newA) {
+                // Atualiza objeto local
+                const song = allSongs.find(s => s.id === sid);
+                if (song) {
+                    song.title = newT;
+                    song.artist = newA;
+                }
+
+                // Salva no Firestore
+                try {
+                    await setDoc(doc(db, "song_edits", sid), {
+                        title: newT,
+                        artist: newA
+                    }, { merge: true });
+
+                    customTitles[sid] = { title: newT, artist: newA };
+
+                    showToast("Música renomeada!");
+                    closeModals();
+
+                    // Re-renderiza views para mostrar novo nome
+                    if (document.getElementById('view-home').classList.contains('active')) renderHome();
+                    if (currentOpenPlaylistId) openFolder(currentOpenPlaylistId);
+                    if (document.getElementById('search-input').value) document.getElementById('search-input').dispatchEvent(new Event('input'));
+
+                    // Se estiver tocando essa música, atualiza player
+                    if (currentQueue[queueIndex] && currentQueue[queueIndex].id === sid) {
+                        document.getElementById('mini-title').innerText = newT;
+                        document.getElementById('mini-artist').innerText = newA;
+                        document.getElementById('fp-title').innerText = newT;
+                        document.getElementById('fp-artist').innerText = newA;
+                        setupMediaSession();
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    showToast("Erro ao salvar.");
+                }
             }
         }
 
@@ -1602,7 +1781,10 @@
             document.getElementById('fp-cover').src = s.cover;
             audio.src = s.audio;
             updateLikeBtnUI(s.id);
-            updateGlobalActiveHighlights(); // Atualiza destaque global
+            updateGlobalActiveHighlights();
+
+            // ATUALIZA NOTIFICAÇÃO
+            setupMediaSession();
         }
 
         function checkMarquee(element) {
@@ -1656,7 +1838,8 @@
                 await addDoc(collection(db, "favoritos"), { songId: sid });
                 showToast("Favoritado 💜");
             }
-            document.getElementById('count-likes').innerText = `${likedSongs.size} músicas`;
+            // Atualiza contagem na pasta se necessário
+            renderLibraryFolders();
             updateLikeBtnUI(sid);
         }
 
@@ -1735,7 +1918,6 @@
 
             window.history.pushState({ page: view }, '', '');
             simpleNavigate(view);
-            // Atualiza highlights ao navegar para home
             if (view === 'home') setTimeout(updateGlobalActiveHighlights, 100);
         }
 
@@ -1747,7 +1929,6 @@
                 const div = document.createElement('div');
                 div.className = `queue-item ${i === queueIndex ? 'playing' : ''}`;
                 div.draggable = true;
-                // ID único para scroll
                 div.id = `q-item-${i}`;
                 div.innerHTML = `
                     <div class="drag-handle"><i class="fas fa-bars"></i></div>
@@ -1766,7 +1947,6 @@
 
                 div.addEventListener('dragover', (e) => {
                     e.preventDefault();
-                    // Lógica de scroll ao arrastar
                     const containerRect = container.getBoundingClientRect();
                     const sensitivity = 50;
                     const scrollSpeed = 10;
@@ -1791,27 +1971,37 @@
             });
             openModal('modal-queue');
 
-            // SCROLL AUTOMÁTICO PARA A MÚSICA TOCANDO
             setTimeout(() => {
                 const activeItem = document.getElementById(`q-item-${queueIndex}`);
                 if (activeItem) {
                     activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-            }, 300); // Espera o modal abrir
+            }, 300);
         }
 
         window.showCreatePlaylistUI = () => {
-            document.getElementById('modal-playlists').classList.remove('active');
-            document.getElementById('modal-create-pl').classList.add('active');
+            // Se veio do modal de adicionar playlist
+            if (document.getElementById('modal-playlists').classList.contains('active')) {
+                document.getElementById('modal-playlists').classList.remove('active');
+            }
+            openModal('modal-create-pl');
         }
+
         window.finishCreatePlaylist = async () => {
             const n = document.getElementById('new-pl-name').value;
             if (n) {
-                const ref = await addDoc(collection(db, "playlists"), { name: n, songs: [contextTargetSong.id] });
-                playlists.push({ id: ref.id, name: n, songs: [contextTargetSong.id] });
+                // Se contextTargetSong existe, adiciona ela. Se não (veio da biblioteca), cria vazia
+                const initSongs = (contextTargetSong && document.querySelector('#modal-playlists')) ? [contextTargetSong.id] : [];
+
+                const ref = await addDoc(collection(db, "playlists"), { name: n, songs: initSongs });
+                playlists.push({ id: ref.id, name: n, songs: initSongs });
+
                 renderLibraryFolders();
                 showToast("Playlist criada!");
                 closeModals();
+
+                // Se foi criado da biblioteca, abre a pasta
+                if (initSongs.length === 0) openFolder(ref.id);
             }
         }
 
@@ -1829,12 +2019,17 @@
             if (repeatMode === 2) { btn.classList.add('control-active'); bg.innerText = "1"; showToast("Repetir Música"); }
         }
 
-        document.getElementById('fp-play').onclick = () => { if (audio.paused) { audio.play(); isPlaying = true; } else { audio.pause(); isPlaying = false; } updatePlayBtnUI(); };
+        document.getElementById('fp-play').onclick = () => {
+            if (audio.paused) { audio.play(); isPlaying = true; } else { audio.pause(); isPlaying = false; }
+            updatePlayBtnUI();
+        };
         document.getElementById('mini-play-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('fp-play').click(); };
 
         function updatePlayBtnUI() {
             const h = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
             document.getElementById('fp-play').innerHTML = h; document.getElementById('mini-play-btn').innerHTML = h;
+            // Atualiza estado do media session
+            if (navigator.mediaSession) navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
         }
 
         audio.ontimeupdate = () => {
@@ -1860,7 +2055,7 @@
             if (term.length < 1) return;
             searchResultsArray = allSongs.filter(s => s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term));
             searchResultsArray.forEach((s, i) => el.innerHTML += createSongHTML(s, i, 'search'));
-            updateGlobalActiveHighlights(); // Atualiza highlight na busca
+            updateGlobalActiveHighlights();
         });
 
     </script>
