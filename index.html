@@ -1532,12 +1532,15 @@
         }
 
         window.contextAction = (action) => {
+            // Ação de Playlist (mantém como estava)
             if (action === 'addPlaylist') {
-                // Fecha context menu e abre playlist selector, sem quebrar histórico
                 document.getElementById('modal-context').classList.remove('active');
-                // Abre playlist selector (sem pushState pois ja estamos "dentro" de um fluxo de modal, ou replace)
                 document.getElementById('modal-playlists').classList.add('active');
+                // ... (o restante da lógica de playlist que já existe no seu código) ...
+                // Nota: Copie a lógica de preencher a lista de playlists aqui se ela não estiver separada
 
+                // Para simplificar, vou manter a lógica original da playlist aqui resumida, 
+                // mas o foco é o conserto do 'details' abaixo:
                 const list = document.getElementById('playlist-select-list');
                 list.innerHTML = "";
                 playlists.forEach(pl => {
@@ -1559,9 +1562,22 @@
                 });
                 return;
             }
-            if (action === 'like') toggleLike(contextTargetSong.id);
-            if (action === 'details') showDetails(contextTargetSong);
-            closeModals();
+
+            // Ação de Like
+            if (action === 'like') {
+                toggleLike(contextTargetSong.id);
+                closeModals(); // Fecha o menu
+            }
+
+            // Ação de Detalhes (CORREÇÃO AQUI)
+            if (action === 'details') {
+                closeModals(); // 1. Primeiro fecha o menu de contexto
+
+                // 2. Espera 100ms para garantir que fechou e então abre o detalhes
+                setTimeout(() => {
+                    showDetails(contextTargetSong);
+                }, 100);
+            }
         }
 
         // --- QUEUE ---
@@ -1675,4 +1691,3 @@
 </body>
 
 </html>
-
