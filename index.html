@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0610">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Echoo">
 
     <title>Echoo</title>
 
@@ -12,10 +15,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="img/favicon.ico" type="image/x-icon">
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Echoo">
     <link rel="apple-touch-icon" href="https://placehold.co/180x180/9d4edd/ffffff?text=Echoo">
 
     <style>
@@ -481,17 +480,14 @@
             position: relative;
         }
 
-        /* CORREÇÃO 1: AUMENTO DOS ÍCONES LATERAIS (Shuffle e Repeat) */
         .fp-controls .side-icon {
             font-size: 26px;
-            /* Aumentado de padrão 20px */
         }
 
         .control-active {
             color: var(--primary-purple) !important;
         }
 
-        /* CORREÇÃO 1: ÍCONE REPETIR 1 REAJUSTADO */
         .btn-repeat-1 {
             position: relative;
         }
@@ -508,7 +504,6 @@
             z-index: 10;
             font-family: sans-serif;
             margin-top: 1px;
-            /* Contorno para não "comer" a seta */
             background-color: var(--bg-black);
             padding: 0 2px;
             border-radius: 4px;
@@ -766,7 +761,7 @@
             color: white;
         }
 
-        /* CORREÇÃO: QUEUE DRAG & DROP ESTILOS */
+        /* QUEUE DRAG & DROP */
         .queue-list {
             overflow-y: auto;
             margin-top: 10px;
@@ -976,9 +971,20 @@
         <div class="modal-sheet">
             <div class="modal-title" id="pl-ctx-title">Playlist <i class="fas fa-times" onclick="closeModals()"></i>
             </div>
+            <div class="menu-item" onclick="playlistContextAction('rename')">
+                <i class="fas fa-edit"></i> Renomear Playlist
+            </div>
             <div class="menu-item" onclick="playlistContextAction('delete')" style="color:#ff4757;">
                 <i class="fas fa-trash"></i> Excluir Playlist
             </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-rename-pl">
+        <div class="modal-sheet" style="transform: translateY(-50%); top:50%; bottom:auto; border-radius:25px;">
+            <div class="modal-title">Renomear Playlist</div>
+            <input type="text" class="form-input" id="rename-pl-input" placeholder="Novo nome...">
+            <button class="btn-action" onclick="finishRenamePlaylist()">Salvar</button>
         </div>
     </div>
 
@@ -1095,8 +1101,7 @@
 
                 <div id="view-library" class="view-section">
                     <h2 id="lib-main-title">Sua Biblioteca</h2>
-                    <div id="lib-folders" class="library-grid">
-                    </div>
+                    <div id="lib-folders" class="library-grid"></div>
 
                     <div id="lib-content" style="display:none;">
                         <div
@@ -1221,7 +1226,7 @@
                 class="fas fa-book"></i>Biblioteca</button>
     </div>
 
-    <audio id="audio"></audio>
+    <audio id="audio" playsinline preload="auto"></audio>
     <div class="toast" id="toast"></div>
 
     <script type="module">
@@ -1253,7 +1258,11 @@
         let currentOpenPlaylistId = null;
         let isPlaying = false;
         let shuffleMode = false;
-        let repeatMode = 0; // 0: Off, 1: Loop List, 2: Loop One (MAS A LOGICA AGORA É OFF -> ONE -> LIST)
+        let repeatMode = 0;
+
+        // CRUCIAL: Controle de contexto para saber de onde veio a lista (Home, Search, Folder)
+        // Isso resolve o bug do aleatório não desligar e das pastas não tocarem
+        let currentContext = { type: 'home', id: null };
 
         let touchStartX = 0;
         let touchStartY = 0;
@@ -1272,7 +1281,6 @@
             window.history.replaceState({ page: 'home' }, '', '');
             await loadUserData();
             await fetchMusic();
-            setupMediaSession();
         };
 
         window.onpopstate = (event) => {
@@ -1288,6 +1296,12 @@
             document.getElementById(`view-${view}`).classList.add('active');
             document.querySelectorAll('.mob-link, .nav-btn').forEach(b => b.classList.remove('active'));
             if (document.getElementById(`mob-${view}`)) document.getElementById(`mob-${view}`).classList.add('active');
+
+            // Atualiza o contexto ao navegar, para o player saber o que tocar se clicado
+            if (view === 'home') currentContext = { type: 'home', id: null };
+            if (view === 'search') currentContext = { type: 'search', id: null };
+            // Library é tratado no openFolder
+
             if (view === 'library') renderLibraryFolders();
             setTimeout(updateGlobalActiveHighlights, 100);
         }
@@ -1446,6 +1460,7 @@
             document.querySelectorAll(`.song-row[data-song-id="${currentSong.id}"]`).forEach(row => row.classList.add('active-song'));
         }
 
+        // --- CONTROLE DE MÍDIA AVANÇADO (Background / Fone) ---
         function setupMediaSession() {
             if ('mediaSession' in navigator && currentQueue[queueIndex]) {
                 const s = currentQueue[queueIndex];
@@ -1453,10 +1468,20 @@
                     title: s.title, artist: s.artist, album: s.album || "Echoo",
                     artwork: [{ src: s.cover, sizes: '512x512', type: 'image/jpeg' }]
                 });
-                navigator.mediaSession.setActionHandler('play', () => { audio.play(); isPlaying = true; updatePlayBtnUI(); });
-                navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); isPlaying = false; updatePlayBtnUI(); });
+
+                // Handlers para fone e central de controle
+                navigator.mediaSession.setActionHandler('play', () => {
+                    audio.play().then(() => { isPlaying = true; updatePlayBtnUI(); }).catch(e => console.log(e));
+                });
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    audio.pause(); isPlaying = false; updatePlayBtnUI();
+                });
                 navigator.mediaSession.setActionHandler('previoustrack', () => document.getElementById('fp-prev').click());
                 navigator.mediaSession.setActionHandler('nexttrack', () => document.getElementById('fp-next').click());
+                navigator.mediaSession.setActionHandler('seekto', (details) => {
+                    if (details.fastSeek && 'fastSeek' in audio) audio.fastSeek(details.seekTime);
+                    else audio.currentTime = details.seekTime;
+                });
             }
         }
 
@@ -1484,11 +1509,9 @@
             if (!isScrolling) openFolder(pid);
         }
 
-        // CORREÇÃO 3: MODAL ESTILIZADO DE CONFIRMAÇÃO
         window.playlistContextAction = async (action) => {
             if (action === 'delete' && contextTargetPlaylist) {
-                closeModals(); // Fecha o contexto
-
+                closeModals();
                 document.getElementById('confirm-msg').innerText = `Deseja excluir a playlist "${contextTargetPlaylist.name}"?`;
                 document.getElementById('btn-confirm-yes').onclick = async () => {
                     await deleteDoc(doc(db, "playlists", contextTargetPlaylist.id));
@@ -1498,30 +1521,70 @@
                     closeModals();
                 };
                 openModal('modal-confirm');
+            } else if (action === 'rename' && contextTargetPlaylist) {
+                document.getElementById('modal-playlist-context').classList.remove('active');
+                document.getElementById('rename-pl-input').value = contextTargetPlaylist.name;
+                openModal('modal-rename-pl');
             }
+        }
+
+        window.finishRenamePlaylist = async () => {
+            const newName = document.getElementById('rename-pl-input').value.trim();
+            if (newName && contextTargetPlaylist) {
+                const plRef = doc(db, "playlists", contextTargetPlaylist.id);
+                await updateDoc(plRef, { name: newName });
+
+                // Atualiza localmente
+                const pl = playlists.find(p => p.id === contextTargetPlaylist.id);
+                if (pl) pl.name = newName;
+
+                // Atualiza UI
+                renderLibraryFolders();
+                if (currentOpenPlaylistId === contextTargetPlaylist.id) {
+                    document.getElementById('folder-title').innerText = newName;
+                }
+
+                showToast("Playlist renomeada!");
+                closeModals();
+            }
+        }
+
+        // Nova Helper Function para garantir a lista correta
+        function getSongsForContext(type, id) {
+            if (type === 'search') return [...searchResultsArray];
+            if (type === 'home') return [...allSongs];
+            if (type === 'folder') {
+                if (id === 'likes') return allSongs.filter(s => likedSongs.has(s.id));
+                if (id === 'top') return [...allSongs].sort((a, b) => b.playCount - a.playCount).slice(0, 50);
+                const pl = playlists.find(p => p.id === id);
+                if (pl) return (pl.songs || []).map(sid => allSongs.find(x => x.id === sid)).filter(x => x);
+                return [];
+            }
+            return [...allSongs];
         }
 
         window.openFolder = (type) => {
             window.history.pushState({ folder: type }, '', '');
-            currentOpenPlaylistId = (type !== 'likes' && type !== 'top') ? type : null;
+            currentOpenPlaylistId = (type !== 'likes' && type !== 'top') ? type : type; // Fix ID saving
+            currentContext = { type: 'folder', id: type }; // Atualiza contexto global
+
             document.getElementById('lib-folders').style.display = 'none';
             document.getElementById('lib-content').style.display = 'block';
-            document.getElementById('btn-add-to-pl').style.display = currentOpenPlaylistId ? 'block' : 'none';
+            document.getElementById('btn-add-to-pl').style.display = (type !== 'likes' && type !== 'top') ? 'block' : 'none';
 
             const list = document.getElementById('folder-list');
             list.innerHTML = "";
-            let songsToShow = [];
-            if (type === 'likes') {
-                document.getElementById('folder-title').innerText = "Favoritos";
-                songsToShow = allSongs.filter(s => likedSongs.has(s.id));
-            } else if (type === 'top') {
-                document.getElementById('folder-title').innerText = "Mais Ouvidas (Top 50)";
-                songsToShow = [...allSongs].sort((a, b) => b.playCount - a.playCount).slice(0, 50);
-            } else {
+
+            // Usando a nova helper function para consistência
+            let songsToShow = getSongsForContext('folder', type);
+
+            if (type === 'likes') document.getElementById('folder-title').innerText = "Favoritos";
+            else if (type === 'top') document.getElementById('folder-title').innerText = "Mais Ouvidas (Top 50)";
+            else {
                 const pl = playlists.find(p => p.id === type);
-                document.getElementById('folder-title').innerText = pl.name;
-                songsToShow = (pl.songs || []).map(sid => allSongs.find(x => x.id === sid)).filter(x => x);
+                if (pl) document.getElementById('folder-title').innerText = pl.name;
             }
+
             document.getElementById('folder-subtitle').innerText = `${songsToShow.length} músicas`;
             songsToShow.forEach((s, i) => list.innerHTML += createSongHTML(s, i, 'folder'));
             updateGlobalActiveHighlights();
@@ -1533,6 +1596,9 @@
                 document.getElementById('lib-content').style.display = 'none';
                 document.getElementById('lib-folders').style.display = 'grid';
                 currentOpenPlaylistId = null;
+                // Volta o contexto para Home ao sair da pasta, se não estiver tocando
+                // Mas se estiver tocando, mantemos o contexto da reprodução. 
+                // A UI apenas volta.
                 renderLibraryFolders();
             }
         }
@@ -1584,7 +1650,9 @@
                 const isLiked = likedSongs.has(contextTargetSong.id);
                 document.getElementById('ctx-icon-heart').className = isLiked ? "fas fa-heart" : "far fa-heart";
                 document.getElementById('ctx-icon-heart').style.color = isLiked ? "var(--primary-purple)" : "var(--text-gray)";
-                document.getElementById('btn-remove-pl').style.display = currentOpenPlaylistId ? 'flex' : 'none';
+                // Mostra remover apenas se for playlist customizada (não likes/top)
+                const isCustomPl = currentOpenPlaylistId && currentOpenPlaylistId !== 'likes' && currentOpenPlaylistId !== 'top';
+                document.getElementById('btn-remove-pl').style.display = isCustomPl ? 'flex' : 'none';
                 openModal('modal-context');
             }
         }
@@ -1663,25 +1731,20 @@
             }
         }
 
-        window.playFromList = (index, context) => {
-            let sourceList = [];
+        // --- PLAYBACK ENGINE FIXES ---
 
-            // Define a lista de origem
-            if (context === 'search') sourceList = [...searchResultsArray];
-            else if (context === 'home') sourceList = [...allSongs];
-            else if (context === 'folder') {
-                if (currentOpenPlaylistId === 'likes') sourceList = allSongs.filter(s => likedSongs.has(s.id));
-                else if (currentOpenPlaylistId === 'top') sourceList = [...allSongs].sort((a, b) => b.playCount - a.playCount).slice(0, 50);
-                else {
-                    const pl = playlists.find(p => p.id === currentOpenPlaylistId);
-                    if (pl) sourceList = (pl.songs || []).map(sid => allSongs.find(x => x.id === sid)).filter(x => x);
-                }
-            } else {
-                sourceList = [...currentQueue];
+        window.playFromList = (index, context) => {
+            // Atualiza o contexto atual se não for do tipo "fila" (que usa o atual)
+            if (context !== 'queue') {
+                if (context === 'search') currentContext = { type: 'search', id: null };
+                else if (context === 'home') currentContext = { type: 'home', id: null };
+                else if (context === 'folder') currentContext = { type: 'folder', id: currentOpenPlaylistId };
             }
 
+            let sourceList = getSongsForContext(currentContext.type, currentContext.id);
+
+            // Logica Aleatória: Se estiver ativado, embaralha a partir da música clicada
             if (shuffleMode) {
-                // Ao clicar com aleatório ligado, toca a clicada e embaralha o resto
                 const selectedSong = sourceList[index];
                 const others = sourceList.filter(s => s.id !== selectedSong.id);
                 others.sort(() => Math.random() - 0.5);
@@ -1693,9 +1756,16 @@
             }
 
             loadSong(currentQueue[queueIndex]);
-            audio.play();
-            isPlaying = true;
-            updatePlayBtnUI();
+            // Promise handling para iOS
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    isPlaying = true;
+                    updatePlayBtnUI();
+                }).catch(error => {
+                    console.error("Playback prevented", error);
+                });
+            }
         }
 
         function loadSong(s) {
@@ -1706,7 +1776,11 @@
             document.getElementById('fp-title').innerText = s.title;
             document.getElementById('fp-artist').innerText = s.artist;
             document.getElementById('fp-cover').src = s.cover;
+
+            // Critical for iOS: Set src and load
             audio.src = s.audio;
+            audio.load();
+
             updateLikeBtnUI(s.id);
             updateGlobalActiveHighlights();
             setupMediaSession();
@@ -1719,20 +1793,37 @@
             setTimeout(() => { if (element.scrollWidth > element.parentElement.clientWidth) element.classList.add('scroll-active'); }, 100);
         }
 
+        // Evento de fim de música otimizado para não travar no background
         audio.onended = async () => {
             const song = currentQueue[queueIndex];
             if (song) {
                 song.playCount = (song.playCount || 0) + 1;
                 playCounts[song.id] = song.playCount;
                 await setDoc(doc(db, "play_counts", song.id), { count: increment(1) }, { merge: true });
+                // Atualiza UI badges
                 document.querySelectorAll(`[id^='badge-${song.id}']`).forEach(b => {
                     b.innerHTML = `<i class="fas fa-headphones"></i> ${song.playCount}`;
                     b.style.display = "inline-block";
                 });
             }
-            if (repeatMode === 2) { audio.currentTime = 0; audio.play(); } // Loop One
-            else if (queueIndex < currentQueue.length - 1) { queueIndex++; loadSong(currentQueue[queueIndex]); audio.play(); }
-            else if (repeatMode === 1) { queueIndex = 0; loadSong(currentQueue[queueIndex]); audio.play(); } // Loop List
+
+            let nextIndex = -1;
+            if (repeatMode === 2) {
+                nextIndex = queueIndex; // Loop One
+            } else if (queueIndex < currentQueue.length - 1) {
+                nextIndex = queueIndex + 1;
+            } else if (repeatMode === 1) {
+                nextIndex = 0; // Loop List
+            }
+
+            if (nextIndex !== -1) {
+                queueIndex = nextIndex;
+                loadSong(currentQueue[queueIndex]);
+                audio.play().catch(e => console.log("Auto-play blocked by OS", e));
+            } else {
+                isPlaying = false;
+                updatePlayBtnUI();
+            }
         };
 
         window.toggleLike = async (sid) => {
@@ -1927,31 +2018,43 @@
             }
         }
 
+        // --- FIXED SHUFFLE LOGIC ---
         window.toggleShuffle = () => {
             shuffleMode = !shuffleMode;
             const btn = document.getElementById('btn-shuffle');
+            const currentSong = currentQueue[queueIndex];
 
             if (shuffleMode) {
+                // ATIVAR: Embaralha mantendo a atual
                 btn.classList.add('control-active');
                 showToast("Aleatório Ativado");
-                if (currentQueue.length > 1) {
-                    const currentSong = currentQueue[queueIndex];
-                    let others = currentQueue.filter((s, i) => i !== queueIndex);
-                    others.sort(() => Math.random() - 0.5);
-                    currentQueue = [currentSong, ...others];
-                    queueIndex = 0;
-                }
+
+                // Pega o resto da fila atual e embaralha
+                let others = currentQueue.filter(s => s.id !== currentSong.id);
+                others.sort(() => Math.random() - 0.5);
+                currentQueue = [currentSong, ...others];
+                queueIndex = 0;
             } else {
+                // DESATIVAR: Restaura a ordem original baseada no contexto (Home, Folder, etc)
                 btn.classList.remove('control-active');
                 showToast("Ordem Original");
+
+                // Recarrega a lista original limpa
+                let originalList = getSongsForContext(currentContext.type, currentContext.id);
+
+                // Tenta achar a música atual na lista original para não parar de tocar
+                let newIndex = originalList.findIndex(s => s.id === currentSong.id);
+
+                if (newIndex !== -1) {
+                    currentQueue = originalList;
+                    queueIndex = newIndex;
+                } else {
+                    // Se a música atual não estiver na lista original (raro), mantém a fila atual mas desliga o modo
+                }
             }
         }
 
-        // CORREÇÃO 2: LÓGICA DE REPETIÇÃO: OFF -> ONE -> LIST -> OFF
         window.toggleRepeat = () => {
-            // Lógica antiga: repeatMode = (repeatMode + 1) % 3; // (0->1->2->0)
-
-            // Nova Lógica:
             if (repeatMode === 0) repeatMode = 2; // Off -> One
             else if (repeatMode === 2) repeatMode = 1; // One -> List
             else repeatMode = 0; // List -> Off
@@ -1960,7 +2063,7 @@
             const icon = document.getElementById('icon-repeat');
 
             // Reset classes
-            btn.className = "btn-icon side-icon"; // Mantendo a classe side-icon para tamanho
+            btn.className = "btn-icon side-icon";
             icon.parentElement.classList.remove('repeat-1-icon');
             btn.classList.remove('btn-repeat-1');
 
@@ -1978,8 +2081,11 @@
         }
 
         document.getElementById('fp-play').onclick = () => {
-            if (audio.paused) { audio.play(); isPlaying = true; } else { audio.pause(); isPlaying = false; }
-            updatePlayBtnUI();
+            if (audio.paused) {
+                audio.play().then(() => { isPlaying = true; updatePlayBtnUI(); }).catch(e => console.error(e));
+            } else {
+                audio.pause(); isPlaying = false; updatePlayBtnUI();
+            }
         };
         document.getElementById('mini-play-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('fp-play').click(); };
 
@@ -2001,7 +2107,7 @@
         function fmtTime(s) { const m = Math.floor(s / 60), sc = Math.floor(s % 60); return `${m}:${sc < 10 ? '0' + sc : sc}`; }
         document.getElementById('fp-progress-container').onclick = function (e) { audio.currentTime = (e.offsetX / this.clientWidth) * audio.duration; }
         document.getElementById('fp-next').onclick = () => audio.onended();
-        document.getElementById('fp-prev').onclick = () => { if (audio.currentTime > 3) audio.currentTime = 0; else if (queueIndex > 0) { queueIndex--; loadSong(currentQueue[queueIndex]); audio.play(); } };
+        document.getElementById('fp-prev').onclick = () => { if (audio.currentTime > 3) audio.currentTime = 0; else if (queueIndex > 0) { queueIndex--; loadSong(currentQueue[queueIndex]); document.getElementById('fp-play').click(); } };
 
         function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
 
